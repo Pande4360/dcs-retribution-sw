@@ -1,4 +1,4 @@
 class: AircraftCarrier
 price: 0
 variants:
-  Destroyer_carrier: null
+  CalamariCruiser: null

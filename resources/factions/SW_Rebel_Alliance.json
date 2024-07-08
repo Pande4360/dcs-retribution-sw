@@ -29,9 +29,7 @@
     "Truck M818 6x6"
   ],
   "infantry_units": [
-    "Infantry M249",
-    "Infantry M4",
-    "MANPADS Stinger"
+    "ReTrooper"
   ],
   "preset_groups": [
     "Hawk",

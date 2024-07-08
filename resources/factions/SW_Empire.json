@@ -35,11 +35,7 @@
     "Truck Ural-375"
   ],
   "infantry_units": [
-    "Infantry AK-74 Rus",
-    "MANPADS SA-18 Igla \"Grouse\"",
-    "Mortar 2B11 120mm",
-    "Paratrooper AKS",
-    "Paratrooper RPG-16"
+    "StTrooper"
   ],
   "missiles": [],
   "preset_groups": [
