@@ -1097,7 +1097,7 @@ class UH_60L(HelicopterType):
     class Pylon7:
         CEFS_Fuel_Tank_200_gallons = (7, Weapons.CEFS_Fuel_Tank_200_gallons)
 
-    # ERRR <CLEAN>
+    # ERRR<CLEAN>
 
     pylons: Set[int] = {1, 2, 3, 4, 5, 6, 7}
 

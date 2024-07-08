@@ -12,4 +12,4 @@ origin: USSR/Russia
 price: 90
 role: Airborne Amphibious Infantry Fighting Vehicle
 variants:
-  Jugger: {}
+  Jugger: null
