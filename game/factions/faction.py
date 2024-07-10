@@ -502,6 +502,8 @@ class Faction:
             self.remove_aircraft("TIE_INTERA")
             self.remove_aircraft("naboo_starfighter")
             self.remove_aircraft("naboo_starfighter_AI")
+            self.remove_aircraft("UD60")
+            self.remove_aircraft("Laat")
             self.remove_vehicle("MBT9_REBEL")
             self.remove_vehicle("MBT9_AAA EMPIRE")
             self.remove_vehicle("MBT9_EMPIRE")
@@ -510,12 +512,10 @@ class Faction:
             self.remove_vehicle("TB_TT")
             self.remove_vehicle("TR_TT")
             self.remove_vehicle("Gozanti")
+            self.remove_vehicle("StTrooper")
+            self.remove_vehicle("ReTrooper")
             self.remove_ship("Destroyer_carrier")
             self.remove_ship("CalamariCruiser")
-            self.remove_ship("UD60")
-            self.remove_ship("Laat")
-            self.remove_ship("StTrooper")
-            self.remove_ship("ReTrooper")
 
     def remove_aircraft(self, name: str) -> None:
         for i in self.aircrafts:

@@ -42,7 +42,7 @@
     "DDG Arleigh Burke IIa",
     "CG Ticonderoga",
     "LHA-1 Tarawa",
-    "CVN-74 John C. Stennis"
+    "CalamariCruiser"
   ],
   "missiles": [],
   "air_defense_units": [
@@ -51,7 +51,7 @@
   ],
   "requirements": {},
   "carrier_names": [
-    "CVN-71 Theodore Roosevelt"
+    "CalamariCruiser"
   ],
   "helicopter_carrier_names": [
     "LHA-1 Tarawa",
