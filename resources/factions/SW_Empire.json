@@ -11,7 +11,8 @@
     "HUNTER",
     "TIE_INTER",
     "CORVETTE",
-    "tie_bomber_2"
+    "tie_bomber_2",
+    "Laat"
   ],
   "awacs": [
     "A-50"
@@ -35,11 +36,7 @@
     "Truck Ural-375"
   ],
   "infantry_units": [
-    "Infantry AK-74 Rus",
-    "MANPADS SA-18 Igla \"Grouse\"",
-    "Mortar 2B11 120mm",
-    "Paratrooper AKS",
-    "Paratrooper RPG-16"
+    "StTrooper"
   ],
   "missiles": [],
   "preset_groups": [
@@ -54,9 +51,7 @@
     "Russian Navy"
   ],
   "naval_units": [
-    "Frigate 1135M Rezky",
-    "Corvette 1241.1 Molniya",
-    "CV 1143.5 Admiral Kuznetsov"
+    "Destroyer_carrier"
   ],
   "air_defense_units": [
     "MBT9_AAA EMPIRE",

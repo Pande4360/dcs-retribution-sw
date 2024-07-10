@@ -8,7 +8,8 @@
     "YWING",
     "FAUCON",
     "AWING",
-    "naboo_starfighter"
+    "naboo_starfighter",
+    "UD60"
   ],
   "awacs": [
     "E-2C Hawkeye",
@@ -29,9 +30,7 @@
     "Truck M818 6x6"
   ],
   "infantry_units": [
-    "Infantry M249",
-    "Infantry M4",
-    "MANPADS Stinger"
+    "ReTrooper"
   ],
   "preset_groups": [
     "Hawk",
@@ -40,11 +39,7 @@
     "Patriot"
   ],
   "naval_units": [
-    "FFG Oliver Hazard Perry",
-    "DDG Arleigh Burke IIa",
-    "CG Ticonderoga",
-    "LHA-1 Tarawa",
-    "CVN-74 John C. Stennis"
+    "CalamariCruiser"
   ],
   "missiles": [],
   "air_defense_units": [
