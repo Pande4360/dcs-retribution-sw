@@ -511,6 +511,11 @@ class Faction:
             self.remove_vehicle("TR_TT")
             self.remove_vehicle("Gozanti")
             self.remove_ship("Destroyer_carrier")
+            self.remove_ship("CalamariCruiser")
+            self.remove_ship("UD60")
+            self.remove_ship("Laat")
+            self.remove_ship("StTrooper")
+            self.remove_ship("ReTrooper")
 
     def remove_aircraft(self, name: str) -> None:
         for i in self.aircrafts:
