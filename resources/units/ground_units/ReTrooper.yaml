@@ -1,0 +1,6 @@
+class: Infantry
+price: 0
+spawn_weight: 1
+variants:
+  ReTrooper: null
+
