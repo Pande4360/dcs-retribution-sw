@@ -51,9 +51,7 @@
     "Russian Navy"
   ],
   "naval_units": [
-    "Frigate 1135M Rezky",
-    "Corvette 1241.1 Molniya",
-    "CV 1143.5 Admiral Kuznetsov"
+    "SW - ISD carrier"
   ],
   "air_defense_units": [
     "MBT9_AAA EMPIRE",
@@ -71,7 +69,7 @@
   "helicopter_carrier_names": [],
   "requirements": {},
   "carrier_names": [
-    "Admiral Kuznetsov"
+    "SW - ISD carrier"
   ],
   "has_jtac": true,
   "jtac_unit": "MQ-9 Reaper"
