@@ -974,12 +974,9 @@ class UD60(HelicopterType):
     # ERRR {TwinBl_Tube}
     # ERRR {TwinBl_Tube}
 
-    class Pylon5:
-        Right_Gunner_Seat = (5, Weapons.Right_Gunner_Seat)
-
     # ERRR {TwinBl_Tube}
 
-    class Pylon6:
+    class Pylon5:
         CEFS_Fuel_Tank_200_gallons = (6, Weapons.CEFS_Fuel_Tank_200_gallons)
         LAU_61_pod___19_x_2_75_Hydra__UnGd_Rkts_M151__HE = (
             6,
