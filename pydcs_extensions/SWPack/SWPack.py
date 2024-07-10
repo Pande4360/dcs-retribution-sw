@@ -1,11 +1,11 @@
-from typing import Set
+# from typing import Set
 
 from dcs import task
 from dcs.planes import PlaneType
 from dcs.weapons_data import Weapons
 from dcs import unittype
 
-from game.modsupport import vehiclemod, shipmod, planemod
+from game.modsupport import vehiclemod, shipmod, planemod, helicoptermod
 from pydcs_extensions.weapon_injector import inject_weapons
 
 
