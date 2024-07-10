@@ -39,7 +39,11 @@
     "Patriot"
   ],
   "naval_units": [
-    "SW - Calamari Cruiser"
+    "FFG Oliver Hazard Perry",
+    "DDG Arleigh Burke IIa",
+    "CG Ticonderoga",
+    "LHA-1 Tarawa",
+    "CVN-74 John C. Stennis"
   ],
   "missiles": [],
   "air_defense_units": [
