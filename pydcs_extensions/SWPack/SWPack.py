@@ -813,7 +813,7 @@ class CalamariCruiser(unittype.ShipType):
 
 
 @helicoptermod
-class Laat(unittype.HelicopterType):
+class Laat(HelicopterType):
     id = "Laat"
     flyable = True
     height = 5.13
@@ -894,7 +894,7 @@ class Laat(unittype.HelicopterType):
 
 
 @helicoptermod
-class UD60(unittype.HelicopterType):
+class UD60(HelicopterType):
     id = "UD60"
     flyable = True
     height = 5.13
