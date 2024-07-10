@@ -14,12 +14,14 @@
     "C-130J-30 Super Hercules",
     "F-15C Eagle",
     "F-15D Baz",
-    "F-15E Strike Eagle",
+    "F-15E Strike Eagle (AI)",
+    "F-15E Strike Eagle (Suite 4+)",
     "F-16CM Fighting Falcon (Block 50)",
     "F-16D Barak (Block 30)",
     "F-16D Barak (Block 40)",
     "F-16I Sufa",
     "F-4E Phantom II",
+    "F-4E-45MC Phantom II",
     "UH-1H Iroquois",
     "UH-60L"
   ],
@@ -39,10 +41,7 @@
   ],
   "artillery_units": [
     "M109A6 Paladin",
-    "M270 Multiple Launch Rocket System",
-    "(IDF Mods Project) BM-21 Grad 122mm",
-    "(IDF Mods Project) Urgan BM-27 220mm",
-    "(IDF Mods Project) 9A52 Smerch CM 300mm"
+    "M270 Multiple Launch Rocket System"
   ],
   "logistics_units": [
     "Truck M818 6x6"

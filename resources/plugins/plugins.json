@@ -1,9 +1,12 @@
 [    
     "base",
     "ctld",
-    "skynetiads",
+    "arty",
+    "dismounts",
+    "ewrj",
     "ewrs",
     "herculescargo",
-    "splashdamage2",
-    "lotatc"
+    "lotatc",
+    "skynetiads",
+    "splashdamage2"
 ]

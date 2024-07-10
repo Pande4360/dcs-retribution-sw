@@ -4,13 +4,10 @@ import webbrowser
 from pathlib import Path
 from typing import Optional
 
-from PySide2.QtCore import QSettings, Qt, Signal
-from PySide2.QtGui import QCloseEvent, QIcon
-from PySide2.QtWidgets import (
-    QAction,
-    QActionGroup,
+from PySide6.QtCore import QSettings, Qt, Signal
+from PySide6.QtGui import QCloseEvent, QIcon, QAction, QGuiApplication, QActionGroup
+from PySide6.QtWidgets import (
     QApplication,
-    QDesktopWidget,
     QFileDialog,
     QMainWindow,
     QMessageBox,
@@ -99,9 +96,9 @@ class QLiberationWindow(QMainWindow):
 
         # Default to maximized on the main display if we don't have any persistent
         # configuration.
-        screen = QDesktopWidget().screenGeometry()
+        screen = QGuiApplication.primaryScreen().availableSize()
         self.setGeometry(0, 0, screen.width(), screen.height())
-        self.setWindowState(Qt.WindowMaximized)
+        self.setWindowState(Qt.WindowState.WindowMaximized)
 
         # But override it with the saved configuration if it exists.
         self._restore_window_geometry()
@@ -111,7 +108,7 @@ class QLiberationWindow(QMainWindow):
             if last_save_file:
                 logging.info("Loading last saved game : " + str(last_save_file))
                 game = persistency.load_game(last_save_file)
-                self.migrate_game(game, last_save_file)
+                game = self.migrate_game(game, last_save_file)
                 self.onGameGenerated(game)
                 self.updateWindowTitle(last_save_file if game else None)
             else:
@@ -120,8 +117,8 @@ class QLiberationWindow(QMainWindow):
             self.onGameGenerated(self.game)
 
     def initUi(self, ui_flags: UiFlags) -> None:
-        hbox = QSplitter(Qt.Horizontal)
-        vbox = QSplitter(Qt.Vertical)
+        hbox = QSplitter(Qt.Orientation.Horizontal)
+        vbox = QSplitter(Qt.Orientation.Vertical)
         hbox.addWidget(self.ato_panel)
         hbox.addWidget(vbox)
         vbox.addWidget(self.liberation_map)
@@ -134,7 +131,7 @@ class QLiberationWindow(QMainWindow):
 
         self.top_panel = QTopPanel(self.game_model, self.sim_controller, ui_flags)
         vbox = QVBoxLayout()
-        vbox.setMargin(0)
+        vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(self.top_panel)
         vbox.addWidget(hbox)
 
@@ -319,22 +316,31 @@ class QLiberationWindow(QMainWindow):
         )
         if file is not None and file[0] != "":
             game = persistency.load_game(file[0])
-            self.migrate_game(game, file[0])
+            game = self.migrate_game(game, file[0])
             GameUpdateSignal.get_instance().game_loaded.emit(game)
 
             self.updateWindowTitle(file[0])
 
     def migrate_game(self, game, path):
         if game:
-            Migrator(game)
+            is_liberation = ".liberation" in path
+            try:
+                Migrator(game, is_liberation)
+                return game
+            except Exception:
+                self.incompatible_save_popup(path)
         else:
-            relative_path = Path(path)
-            QMessageBox.critical(
-                self,
-                "Incompatible save",
-                "Incompatible save file detected, please report the issue on GitHub or Discord.\n"
-                f"Make sure to include the campaign that fails to load, i.e.:\n\n{relative_path}",
-            )
+            self.incompatible_save_popup(path)
+        return None
+
+    def incompatible_save_popup(self, path):
+        relative_path = Path(path)
+        QMessageBox.critical(
+            self,
+            "Incompatible save",
+            "Incompatible save file detected, please report the issue on GitHub or Discord.\n"
+            f"Make sure to include the campaign that fails to load, i.e.:\n\n{relative_path}",
+        )
 
     def saveGame(self):
         logging.info("Saving game")
@@ -400,11 +406,11 @@ class QLiberationWindow(QMainWindow):
             QApplication.focusWidget(),
             title,
             msg,
-            QMessageBox.Yes,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes,
+            QMessageBox.StandardButton.No,
         )
 
-        if result is not None and result == QMessageBox.Yes:
+        if result is not None and result == QMessageBox.StandardButton.Yes:
             self.newGame()
 
     def setGame(self, game: Optional[Game]):
@@ -424,7 +430,7 @@ class QLiberationWindow(QMainWindow):
                 "version of DCS Retribution.\n"
                 "\n"
                 f"{traceback.format_exc()}",
-                QMessageBox.Ok,
+                QMessageBox.StandardButton.Ok,
             )
             GameUpdateSignal.get_instance().updateGame(None)
         finally:
@@ -486,6 +492,10 @@ class QLiberationWindow(QMainWindow):
             "ColonelAkirNakesh",
             "Nosajthedevil",
             "kivipe",
+            "Turbolious",
+            "ingax01",
+            "M-Chimiste",
+            "tmz42",
         ]
         text = (
             "<h3>DCS Retribution " + VERSION + "</h3>" + "<b>Source code : </b>"
@@ -541,7 +551,7 @@ class QLiberationWindow(QMainWindow):
         LAYOUTS.import_templates()
 
     def showLogsDialog(self):
-        self.dialog = QLogsWindow()
+        self.dialog = QLogsWindow(self)
         self.dialog.show()
 
     def onDebriefing(self, debrief: Debriefing):
@@ -575,11 +585,13 @@ class QLiberationWindow(QMainWindow):
             self,
             "Quit Retribution?",
             "Would you like to save before quitting?",
-            QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
-            QMessageBox.Cancel,
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
         )
-        if result in [QMessageBox.Yes, QMessageBox.No]:
-            if result == QMessageBox.Yes:
+        if result in [QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No]:
+            if result == QMessageBox.StandardButton.Yes:
                 self.saveGame()
             self._save_window_geometry()
             super().closeEvent(event)

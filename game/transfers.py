@@ -35,6 +35,7 @@ import logging
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime
 from functools import singledispatchmethod
 from typing import Generic, Iterator, List, Optional, Sequence, TYPE_CHECKING, TypeVar
 
@@ -48,7 +49,7 @@ from game.dcs.aircrafttype import AircraftType
 from game.dcs.groundunittype import GroundUnitType
 from game.naming import namegen
 from game.procurement import AircraftProcurementRequest
-from game.theater import ControlPoint, MissionTarget
+from game.theater import ControlPoint, MissionTarget, ParkingType, Carrier, Airfield
 from game.theater.transitnetwork import (
     TransitConnection,
     TransitNetwork,
@@ -299,7 +300,7 @@ class AirliftPlanner:
 
         return True
 
-    def create_package_for_airlift(self) -> None:
+    def create_package_for_airlift(self, now: datetime) -> None:
         distance_cache = ObjectiveDistanceCache.get_closest_airfields(
             self.transfer.position
         )
@@ -318,8 +319,15 @@ class AirliftPlanner:
                     ):
                         self.create_airlift_flight(squadron)
         if self.package.flights:
-            self.package.set_tot_asap()
+            self.package.set_tot_asap(now)
             self.game.ato_for(self.for_player).add_package(self.package)
+            from game.server import EventStream
+            from game.sim import GameUpdateEvents
+
+            events = GameUpdateEvents()
+            for f in self.package.flights:
+                events = events.new_flight(f)
+            EventStream.put_nowait(events)
 
     def create_airlift_flight(self, squadron: Squadron) -> int:
         available_aircraft = squadron.untasked_aircraft
@@ -590,7 +598,7 @@ class PendingTransfers:
     def network_for(self, control_point: ControlPoint) -> TransitNetwork:
         return self.game.transit_network_for(control_point.captured)
 
-    def arrange_transport(self, transfer: TransferOrder) -> None:
+    def arrange_transport(self, transfer: TransferOrder, now: datetime) -> None:
         network = self.network_for(transfer.position)
         path = network.shortest_path_between(transfer.position, transfer.destination)
         next_stop = path[0]
@@ -605,12 +613,14 @@ class PendingTransfers:
                 == TransitConnection.Shipping
             ):
                 return self.cargo_ships.add(transfer, next_stop)
-        AirliftPlanner(self.game, transfer, next_stop).create_package_for_airlift()
+        else:
+            next_stop = transfer.destination
+        AirliftPlanner(self.game, transfer, next_stop).create_package_for_airlift(now)
 
-    def new_transfer(self, transfer: TransferOrder) -> None:
+    def new_transfer(self, transfer: TransferOrder, now: datetime) -> None:
         transfer.origin.base.commit_losses(transfer.units)
         self.pending_transfers.append(transfer)
-        self.arrange_transport(transfer)
+        self.arrange_transport(transfer, now)
         self._send_supply_route_event_stream_update()
 
     def split_transfer(self, transfer: TransferOrder, size: int) -> TransferOrder:
@@ -651,10 +661,16 @@ class PendingTransfers:
     def _cancel_transport_air(
         self, transport: Airlift, _transfer: TransferOrder
     ) -> None:
+        from game.sim import GameUpdateEvents
+        from game.server import EventStream
+
         flight = transport.flight
         flight.package.remove_flight(flight)
+        events = GameUpdateEvents().delete_flight(flight)
         if not flight.package.flights:
             self.game.ato_for(self.player).remove_package(flight.package)
+            events = events.delete_flights_in_package(flight.package)
+        EventStream().put_nowait(events)
 
     @cancel_transport.register
     def _cancel_transport_convoy(
@@ -692,7 +708,7 @@ class PendingTransfers:
         self.cargo_ships.disband_all()
         self._send_supply_route_event_stream_update()
 
-    def plan_transports(self) -> None:
+    def plan_transports(self, now: datetime) -> None:
         """
         Plan transports for all pending and completable transfers which don't have a
         transport assigned already. This calculates the shortest path between current
@@ -702,7 +718,7 @@ class PendingTransfers:
         self.disband_uncompletable_transfers()
         for transfer in self.pending_transfers:
             if transfer.transport is None:
-                self.arrange_transport(transfer)
+                self.arrange_transport(transfer, now)
 
     def disband_uncompletable_transfers(self) -> None:
         """
@@ -728,8 +744,17 @@ class PendingTransfers:
                 self.order_airlift_assets_at(control_point)
 
     def desired_airlift_capacity(self, control_point: ControlPoint) -> int:
+        parking_type = ParkingType()
+        parking_type.include_rotary_wing = True
+        if isinstance(control_point, Airfield) or isinstance(control_point, Carrier):
+            parking_type.include_fixed_wing = True
+            parking_type.include_fixed_wing_stol = True
+        else:
+            parking_type.include_fixed_wing = False
+            parking_type.include_fixed_wing_stol = False
+
         if control_point.has_factory:
-            is_major_hub = control_point.total_aircraft_parking > 0
+            is_major_hub = control_point.total_aircraft_parking(parking_type) > 0
             # Check if there is a CP which is only reachable via Airlift
             transit_network = self.network_for(control_point)
             for cp in self.game.theater.control_points_for(self.player):
@@ -750,7 +775,8 @@ class PendingTransfers:
                 if (
                     is_major_hub
                     and cp.has_factory
-                    and cp.total_aircraft_parking > control_point.total_aircraft_parking
+                    and cp.total_aircraft_parking(parking_type)
+                    > control_point.total_aircraft_parking(parking_type)
                 ):
                     is_major_hub = False
 
@@ -769,7 +795,16 @@ class PendingTransfers:
         )
 
     def order_airlift_assets_at(self, control_point: ControlPoint) -> None:
-        unclaimed_parking = control_point.unclaimed_parking()
+        parking_type = ParkingType()
+        parking_type.include_rotary_wing = True
+        if isinstance(control_point, Airfield) or isinstance(control_point, Carrier):
+            parking_type.include_fixed_wing = True
+            parking_type.include_fixed_wing_stol = True
+        else:
+            parking_type.include_fixed_wing = False
+            parking_type.include_fixed_wing_stol = False
+
+        unclaimed_parking = control_point.unclaimed_parking(parking_type)
         # Buy a maximum of unclaimed_parking only to prevent that aircraft procurement
         # take place at another base
         gap = min(

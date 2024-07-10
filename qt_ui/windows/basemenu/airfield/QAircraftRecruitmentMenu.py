@@ -1,7 +1,7 @@
 from typing import Set
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -13,7 +13,7 @@ from PySide2.QtWidgets import (
 from game.dcs.aircrafttype import AircraftType
 from game.purchaseadapter import AircraftPurchaseAdapter
 from game.squadrons import Squadron
-from game.theater import ControlPoint
+from game.theater import ControlPoint, ParkingType
 from qt_ui.models import GameModel
 from qt_ui.uiconstants import ICONS
 from qt_ui.windows.basemenu.UnitTransactionFrame import UnitTransactionFrame
@@ -44,7 +44,9 @@ class QAircraftRecruitmentMenu(UnitTransactionFrame[Squadron]):
         for squadron in cp.squadrons:
             unit_types.add(squadron.aircraft)
 
-        sorted_squadrons = sorted(cp.squadrons, key=lambda s: (s.aircraft.name, s.name))
+        sorted_squadrons = sorted(
+            cp.squadrons, key=lambda s: (s.aircraft.display_name, s.name)
+        )
         for row, squadron in enumerate(sorted_squadrons):
             self.add_purchase_row(squadron, task_box_layout, row)
 
@@ -85,14 +87,18 @@ class QHangarStatus(QHBoxLayout):
         self.text = QLabel("")
 
         self.update_label()
-        self.addWidget(self.icon, Qt.AlignLeft)
-        self.addWidget(self.text, Qt.AlignLeft)
+        self.addWidget(self.icon, Qt.AlignmentFlag.AlignLeft)
+        self.addWidget(self.text, Qt.AlignmentFlag.AlignLeft)
         self.addStretch(50)
-        self.setAlignment(Qt.AlignLeft)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
     def update_label(self) -> None:
-        next_turn = self.control_point.allocated_aircraft()
-        max_amount = self.control_point.total_aircraft_parking
+        parking_type = ParkingType(
+            fixed_wing=True, fixed_wing_stol=True, rotary_wing=True
+        )
+
+        next_turn = self.control_point.allocated_aircraft(parking_type)
+        max_amount = self.control_point.total_aircraft_parking(parking_type)
 
         components = [f"{next_turn.total_present} present"]
         if next_turn.total_ordered > 0:

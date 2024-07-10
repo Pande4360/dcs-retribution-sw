@@ -8,7 +8,7 @@ from typing import Iterator, List, Optional, TYPE_CHECKING, Tuple
 from game.config import RUNWAY_REPAIR_COST
 from game.data.units import UnitClass
 from game.dcs.groundunittype import GroundUnitType
-from game.theater import ControlPoint, MissionTarget
+from game.theater import ControlPoint, MissionTarget, ParkingType
 
 if TYPE_CHECKING:
     from game import Game
@@ -22,11 +22,12 @@ class AircraftProcurementRequest:
     near: MissionTarget
     task_capability: FlightType
     number: int
+    heli: bool = False
 
     def __str__(self) -> str:
         task = self.task_capability.value
         target = self.near.name
-        return f"{self.number} ship {task} near {target}"
+        return f"{self.number} ship {task} near {target} (heli={self.heli})"
 
 
 class ProcurementAi:
@@ -60,18 +61,27 @@ class ProcurementAi:
             return 0
 
         # faction has no planes or no squadrons
-        if len(self.faction.aircrafts) == 0 or len(self.air_wing.squadrons) == 0:
+        if len(self.faction.all_aircrafts) == 0 or len(self.air_wing.squadrons) == 0:
             return 1
+
+        parking_type = ParkingType(
+            fixed_wing=True, fixed_wing_stol=True, rotary_wing=True
+        )
 
         for cp in self.owned_points:
             cp_ground_units = cp.allocated_ground_units(
                 self.game.coalition_for(self.is_player).transfers
             )
             armor_investment += cp_ground_units.total_value
-            cp_aircraft = cp.allocated_aircraft()
+            cp_aircraft = cp.allocated_aircraft(parking_type)
             aircraft_investment += cp_aircraft.total_value
 
-        air = self.game.settings.auto_procurement_balance / 100.0
+        balance = (
+            self.game.settings.auto_procurement_balance
+            if self.is_player
+            else self.game.settings.auto_procurement_balance_red
+        )
+        air = balance / 100.0
         ground = 1 - air
         weighted_investment = aircraft_investment * air + armor_investment * ground
         if weighted_investment == 0:
@@ -209,13 +219,6 @@ class ProcurementAi:
             budget, fulfilled = self.fulfill_aircraft_request(
                 squadrons, request.number, budget
             )
-            if not fulfilled:
-                # The request was not fulfilled because we could not afford any suitable
-                # aircraft. Rather than continuing, which could proceed to buy tons of
-                # cheap escorts that will never allow us to plan a strike package, stop
-                # buying so we can save the budget until a turn where we *can* afford to
-                # fill the package.
-                break
         return budget
 
     @property
@@ -230,13 +233,19 @@ class ProcurementAi:
     ) -> Iterator[Squadron]:
         threatened = []
         for squadron in self.air_wing.best_squadrons_for(
-            request.near, request.task_capability, request.number, this_turn=False
+            request.near,
+            request.task_capability,
+            request.number,
+            request.heli,
+            this_turn=False,
         ):
+            parking_type = ParkingType().from_squadron(squadron)
+
             if not squadron.can_provide_pilots(request.number):
                 continue
-            if not squadron.has_aircraft_capacity_for(request.number):
+            if squadron.location.unclaimed_parking(parking_type) < request.number:
                 continue
-            if squadron.location.unclaimed_parking() < request.number:
+            if not squadron.has_aircraft_capacity_for(request.number):
                 continue
             if self.threat_zones.threatened(squadron.location.position):
                 threatened.append(squadron)
@@ -258,7 +267,12 @@ class ProcurementAi:
                 # No source of ground units, so can't buy anything.
                 continue
 
-            fr_factor = self.game.settings.frontline_reserves_factor / 100.0
+            reserves_factor = (
+                self.game.settings.frontline_reserves_factor
+                if self.is_player
+                else self.game.settings.frontline_reserves_factor_red
+            )
+            fr_factor = reserves_factor / 100.0
             purchase_target = cp.frontline_unit_count_limit * fr_factor
             allocated = cp.allocated_ground_units(
                 self.game.coalition_for(self.is_player).transfers
@@ -292,7 +306,12 @@ class ProcurementAi:
             allocated = cp.allocated_ground_units(
                 self.game.coalition_for(self.is_player).transfers
             )
-            if allocated.total >= self.game.settings.reserves_procurement_target:
+            target = (
+                self.game.settings.reserves_procurement_target
+                if self.is_player
+                else self.game.settings.reserves_procurement_target_red
+            )
+            if allocated.total >= target:
                 continue
 
             if allocated.total < worst_supply:

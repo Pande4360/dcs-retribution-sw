@@ -3,13 +3,13 @@ name: Caucasus - Black Sea
 theater: Caucasus
 authors: Colonel Panic
 description:
-  <p>A medium sized theater with bases along the coast of the Black Sea.</p>
+  <p>A medium sized theater with bases along the coast of the Black Sea. Note that due to heavy SAM coverage, performance on this campaign can be noticeably worse than in many others.</p>
 recommended_player_faction: USA 2005
 recommended_enemy_faction: Russia 2010
 recommended_start_date: 2004-01-07
 miz: black_sea.miz
-performance: 2
-version: "10.9"
+performance: 3
+version: "10.7"
 squadrons:
   # Anapa-Vityazevo
   12:
@@ -73,7 +73,7 @@ squadrons:
     - primary: BAI
       secondary: air-to-ground
       aircraft:
-        - F-15E Strike Eagle
+        - F-15E Strike Eagle (AI)
     - primary: DEAD
       secondary: air-to-ground
       aircraft:
@@ -87,7 +87,7 @@ squadrons:
     - primary: BARCAP
       secondary: air-to-air
       aircraft:
-        - F-15C Eagle
+        - F-15E Strike Eagle (Suite 4+)
     - primary: SEAD
       secondary: any
       aircraft:
@@ -100,7 +100,7 @@ squadrons:
   25:
     - primary: BARCAP
       aircraft:
-        - F-15C Eagle
+        - F-15E Strike Eagle (AI)
     - primary: AEW&C
       aircraft:
         - E-3A

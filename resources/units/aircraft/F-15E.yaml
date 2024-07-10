@@ -1,7 +1,8 @@
 description:
-  The F-15 has often been labeled as the greatest U.S. fighter aircraft
-  from the 1970s until the early 21st century. The F-15E is a multirole fighter and
-  exceeds in CAS operations. It served worldwide without suffering any confirmed losses.
+  The F-15 has often been labeled as the greatest U.S. fighter aircraft from the
+  1970s until the early 21st century. The F-15E is a multirole fighter and
+  exceeds in CAS operations. It served worldwide without suffering any confirmed
+  losses.
 introduced: 1988
 manufacturer: McDonnell Douglas
 origin: USA
@@ -9,8 +10,8 @@ price: 24
 role: Multirole Strike Fighter
 max_range: 300
 variants:
-  F-15E Strike Eagle: {}
-has_built_in_target_pod: true
+  F-15E Strike Eagle:
+    display_name: F-15E Strike Eagle (AI)
 tasks:
   BAI: 760
   BARCAP: 240
@@ -23,3 +24,4 @@ tasks:
   OCA/Runway: 630
   Strike: 640
   TARCAP: 240
+has_built_in_target_pod: true

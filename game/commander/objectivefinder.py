@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import operator
 from collections.abc import Iterable, Iterator
+from random import randint
 from typing import TYPE_CHECKING, TypeVar
 
 from game.ato.closestairfields import ClosestAirfields, ObjectiveDistanceCache
@@ -13,6 +14,7 @@ from game.theater import (
     FrontLine,
     MissionTarget,
     OffMapSpawn,
+    ParkingType,
 )
 from game.theater.theatergroundobject import (
     BuildingGroundObject,
@@ -31,10 +33,6 @@ MissionTargetType = TypeVar("MissionTargetType", bound=MissionTarget)
 
 class ObjectiveFinder:
     """Identifies potential objectives for the mission planner."""
-
-    # TODO: Merge into doctrine.
-    AIRFIELD_THREAT_RANGE = nautical_miles(150)
-    SAM_THREAT_RANGE = nautical_miles(100)
 
     def __init__(self, game: Game, is_player: bool) -> None:
         self.game = game
@@ -142,7 +140,7 @@ class ObjectiveFinder:
     def vulnerable_control_points(self) -> Iterator[ControlPoint]:
         """Iterates over friendly CPs that are vulnerable to enemy CPs.
 
-        Vulnerability is defined as any enemy CP within threat range of of the
+        Vulnerability is defined as any enemy CP within threat range of the
         CP.
         """
         for cp in self.friendly_control_points():
@@ -150,9 +148,18 @@ class ObjectiveFinder:
                 # Off-map spawn locations don't need protection.
                 continue
             airfields_in_proximity = self.closest_airfields_to(cp)
+            airbase_threat_range = self.game.settings.airbase_threat_range
+            if (
+                not self.is_player
+                and randint(1, 100)
+                > self.game.settings.opfor_autoplanner_aggressiveness
+            ):
+                # Chance that the airfield threat range will be evaluated as zero,
+                # causing the OPFOR autoplanner to plan offensively
+                airbase_threat_range = 0
             airfields_in_threat_range = (
                 airfields_in_proximity.operational_airfields_within(
-                    self.AIRFIELD_THREAT_RANGE
+                    nautical_miles(airbase_threat_range)
                 )
             )
             for airfield in airfields_in_threat_range:
@@ -160,12 +167,40 @@ class ObjectiveFinder:
                     yield cp
                     break
 
+    def vulnerable_enemy_control_points(self) -> Iterator[ControlPoint]:
+        """Iterates over enemy CPs that are vulnerable to Air Assault.
+        Vulnerability is defined as any unit being alive in the CP's "blocking_capture" groups.
+        """
+        for cp in self.enemy_control_points():
+            include = True
+            for tgo in cp.connected_objectives:
+                if tgo.distance_to(cp) > cp.CAPTURE_DISTANCE.meters:
+                    continue
+                for u in tgo.units:
+                    if u.is_vehicle and u.alive:
+                        include = False
+                        break
+                if not include:
+                    break
+            if include:
+                yield cp
+
     def oca_targets(self, min_aircraft: int) -> Iterator[ControlPoint]:
+        parking_type = ParkingType()
+        parking_type.include_rotary_wing = True
+        parking_type.include_fixed_wing = True
+        parking_type.include_fixed_wing_stol = True
+
         airfields = []
         for control_point in self.enemy_control_points():
-            if not isinstance(control_point, Airfield):
+            if not isinstance(control_point, Airfield) and not isinstance(
+                control_point, Fob
+            ):
                 continue
-            if control_point.allocated_aircraft().total_present >= min_aircraft:
+            if (
+                control_point.allocated_aircraft(parking_type).total_present
+                >= min_aircraft
+            ):
                 airfields.append(control_point)
         return self._targets_by_range(airfields)
 

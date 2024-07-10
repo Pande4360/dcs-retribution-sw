@@ -3,10 +3,10 @@ from __future__ import unicode_literals, annotations
 from datetime import datetime
 from typing import List, Optional
 
-from PySide2 import QtWidgets, QtGui
-from PySide2.QtCore import Signal, QDate, QPoint, QItemSelectionModel, Qt, QModelIndex
-from PySide2.QtGui import QStandardItem, QPixmap, QStandardItemModel
-from PySide2.QtWidgets import (
+from PySide6 import QtWidgets, QtGui
+from PySide6.QtCore import Signal, QDate, QPoint, QItemSelectionModel, Qt, QModelIndex
+from PySide6.QtGui import QStandardItem, QPixmap, QStandardItemModel
+from PySide6.QtWidgets import (
     QCheckBox,
     QTextBrowser,
     QTextEdit,
@@ -83,12 +83,12 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
         self.setTitle("Theater configuration")
         self.setSubTitle("\nChoose a terrain and time period for this game.")
         self.setPixmap(
-            QtWidgets.QWizard.LogoPixmap,
+            QtWidgets.QWizard.WizardPixmap.LogoPixmap,
             QtGui.QPixmap("./resources/ui/wizard/logo1.png"),
         )
 
         self.setPixmap(
-            QtWidgets.QWizard.WatermarkPixmap,
+            QtWidgets.QWizard.WizardPixmap.WatermarkPixmap,
             QtGui.QPixmap("./resources/ui/wizard/watermark3.png"),
         )
 
@@ -118,10 +118,11 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
         # Campaign settings
         mapSettingsGroup = QtWidgets.QGroupBox("Map Settings")
         mapSettingsLayout = QtWidgets.QGridLayout()
-        invertMap = QtWidgets.QCheckBox()
-        self.registerField("invertMap", invertMap)
+        self.invertMap = QtWidgets.QCheckBox()
+        self.invertMap.stateChanged.connect(self.on_invert_map)
+        self.registerField("invertMap", self.invertMap)
         mapSettingsLayout.addWidget(QtWidgets.QLabel("Invert Map"), 0, 0)
-        mapSettingsLayout.addWidget(invertMap, 0, 1)
+        mapSettingsLayout.addWidget(self.invertMap, 0, 1)
         self.advanced_iads = QtWidgets.QCheckBox()
         self.registerField("advanced_iads", self.advanced_iads)
         self.iads_label = QtWidgets.QLabel("Advanced IADS (WIP)")
@@ -178,6 +179,8 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
 
             self.campaignMapDescription.setText(template.render({"campaign": campaign}))
             self.faction_selection.setDefaultFactions(campaign)
+            if self.invertMap.isChecked():
+                self.on_invert_map()
             self.performanceText.setText(
                 template_perf.render({"performance": campaign.performance})
             )
@@ -202,7 +205,8 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
             self.campaign_selected.emit(campaign)
 
         self.campaignList.selectionModel().setCurrentIndex(
-            self.campaignList.indexAt(QPoint(1, 1)), QItemSelectionModel.Rows
+            self.campaignList.indexAt(QPoint(1, 1)),
+            QItemSelectionModel.SelectionFlag.Rows,
         )
 
         self.campaignList.selectionModel().selectionChanged.connect(
@@ -212,12 +216,12 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
 
         docsText = QtWidgets.QLabel(
             "<p>Want more campaigns? You can "
-            '<a href="https://github.com/dcs-liberation/dcs_liberation/wiki/Campaign-maintenance"><span style="color:#FFFFFF;">offer to help</span></a>, '
-            '<a href="https://github.com/dcs-liberation/dcs_liberation/wiki/Community-campaigns"><span style="color:#FFFFFF;">play a community campaign</span></a>, '
-            'or <a href="https://github.com/dcs-liberation/dcs_liberation/wiki/Custom-Campaigns"><span style="color:#FFFFFF;">create your own</span></a>.'
+            '<a href="https://github.com/dcs-retribution/dcs-retribution/wiki/Campaign-maintenance"><span style="color:#FFFFFF;">offer to help</span></a>, '
+            '<a href="https://github.com/dcs-retribution/dcs-retribution/wiki/Community-campaigns"><span style="color:#FFFFFF;">play a community campaign</span></a>, '
+            'or <a href="https://github.com/dcs-retribution/dcs-retribution/wiki/Custom-Campaigns"><span style="color:#FFFFFF;">create your own</span></a>.'
             "</p>"
         )
-        docsText.setAlignment(Qt.AlignCenter)
+        docsText.setAlignment(Qt.AlignmentFlag.AlignCenter)
         docsText.setOpenExternalLinks(True)
 
         # Register fields
@@ -242,6 +246,13 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
         layout.addWidget(mapSettingsGroup, 2, 1, 1, 1)
         layout.addWidget(timeGroup, 3, 1, 3, 1)
         self.setLayout(layout)
+
+    def on_invert_map(self) -> None:
+        blue = self.faction_selection.blueFactionSelect.currentIndex()
+        red = self.faction_selection.redFactionSelect.currentIndex()
+        self.faction_selection.blueFactionSelect.setCurrentIndex(red)
+        self.faction_selection.redFactionSelect.setCurrentIndex(blue)
+        self.faction_selection.updateUnitRecap()
 
 
 class QCampaignItem(QStandardItem):
@@ -268,7 +279,7 @@ class QCampaignItem(QStandardItem):
 
 
 class QCampaignList(QListView):
-    CampaignRole = Qt.UserRole
+    CampaignRole = Qt.ItemDataRole.UserRole
 
     def __init__(self, campaigns: list[Campaign], show_incompatible: bool) -> None:
         super(QCampaignList, self).__init__()
@@ -277,7 +288,7 @@ class QCampaignList(QListView):
         self.setMinimumWidth(250)
         self.setMinimumHeight(350)
         self.campaigns = campaigns
-        self.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         self.setup_content(show_incompatible)
 
     @property
@@ -296,5 +307,6 @@ class QCampaignList(QListView):
             self.selectionModel().blockSignals(False)
 
         self.selectionModel().setCurrentIndex(
-            self.campaign_model.index(0, 0, QModelIndex()), QItemSelectionModel.Select
+            self.campaign_model.index(0, 0, QModelIndex()),
+            QItemSelectionModel.SelectionFlag.Select,
         )

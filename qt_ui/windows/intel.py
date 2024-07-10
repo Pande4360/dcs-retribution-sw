@@ -1,7 +1,7 @@
 import itertools
 from typing import Optional
 
-from PySide2.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFrame,
@@ -17,6 +17,7 @@ from PySide2.QtWidgets import (
 )
 
 from game.game import Game
+from game.theater import ParkingType
 from qt_ui.uiconstants import ICONS
 from qt_ui.windows.finances.QFinancesMenu import FinancesLayout
 
@@ -59,7 +60,9 @@ class IntelTableLayout(QGridLayout):
 
     def add_spacer(self) -> None:
         self.addItem(
-            QSpacerItem(0, 0, QSizePolicy.Preferred, QSizePolicy.Expanding),
+            QSpacerItem(
+                0, 0, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+            ),
             next(self.row),
             0,
         )
@@ -77,18 +80,21 @@ class AircraftIntelLayout(IntelTableLayout):
 
         total = 0
         for control_point in game.theater.control_points_for(player):
-            allocation = control_point.allocated_aircraft()
+            parking_type = ParkingType(
+                fixed_wing=True, fixed_wing_stol=True, rotary_wing=True
+            )
+            allocation = control_point.allocated_aircraft(parking_type)
             base_total = allocation.total_present
             total += base_total
             if not base_total:
                 continue
 
             self.add_header(f"{control_point.name} ({base_total})")
-            for airframe in sorted(allocation.present, key=lambda k: k.name):
+            for airframe in sorted(allocation.present, key=lambda k: k.display_name):
                 count = allocation.present[airframe]
                 if not count:
                     continue
-                self.add_row(f"    {airframe.name}", count)
+                self.add_row(f"    {airframe.display_name}", count)
             self.add_row("")
 
         self.add_row("<b>Total</b>", total)
@@ -113,11 +119,11 @@ class ArmyIntelLayout(IntelTableLayout):
                 continue
 
             self.add_header(f"{control_point.name} ({base.total_armor})")
-            for vehicle in sorted(base.armor, key=lambda k: k.name):
+            for vehicle in sorted(base.armor, key=lambda k: k.display_name):
                 count = base.armor[vehicle]
                 if not count:
                     continue
-                self.add_row(f"    {vehicle.name}", count)
+                self.add_row(f"    {vehicle.display_name}", count)
             self.add_row("")
 
         self.add_row("<b>Total</b>", total)

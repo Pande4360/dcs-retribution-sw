@@ -5,7 +5,7 @@ from dcs.planes import F_16C_50, PlaneType
 from dcs.weapons_data import Weapons
 
 from game.modsupport import planemod
-from pydcs_extensions.pylon_injector import inject_pylon
+from pydcs_extensions.pylon_injector import inject_pylon, eject_pylon
 from pydcs_extensions.weapon_injector import inject_weapons
 
 
@@ -388,7 +388,20 @@ def inject_F16I() -> None:
     F_16C_50.Pylon14 = Pylon14
     F_16C_50.Pylon15 = Pylon15
     F_16C_50.Pylon16 = Pylon16
-    F_16C_50.Pylon16 = Pylon17
+    F_16C_50.Pylon17 = Pylon17
+
+
+def eject_F16I() -> None:
+    F_16C_50.pylons = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+
+    # Injects modified weapons from the IDF Mods Project F-16I Sufa
+    # into pydcs databases via introspection.
+    eject_pylon(F_16C_50.Pylon4, F16IDFPylon4)
+    eject_pylon(F_16C_50.Pylon6, F16IDFPylon6)
+
+    for p in [13, 14, 15, 16, 17]:
+        if hasattr(F_16C_50, f"Pylon{p}"):
+            delattr(F_16C_50, f"Pylon{p}")
 
 
 @planemod
@@ -516,10 +529,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -530,10 +546,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -546,10 +565,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -590,9 +612,9 @@ class F_16D_52(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -773,9 +795,9 @@ class F_16D_52(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -897,9 +919,9 @@ class F_16D_52(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -977,10 +999,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1021,9 +1046,9 @@ class F_16D_52(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -1170,10 +1195,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1186,10 +1214,13 @@ class F_16D_52(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1385,10 +1416,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1399,10 +1433,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1415,10 +1452,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1459,9 +1499,9 @@ class F_16D_50(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -1642,9 +1682,9 @@ class F_16D_50(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -1766,9 +1806,9 @@ class F_16D_50(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -1846,10 +1886,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -1890,9 +1933,9 @@ class F_16D_50(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -2039,10 +2082,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2055,10 +2101,13 @@ class F_16D_50(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2254,10 +2303,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2268,10 +2320,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2284,10 +2339,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2328,9 +2386,9 @@ class F_16D_52_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -2511,9 +2569,9 @@ class F_16D_52_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -2635,9 +2693,9 @@ class F_16D_52_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -2715,10 +2773,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2759,9 +2820,9 @@ class F_16D_52_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -2908,10 +2969,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -2924,10 +2988,13 @@ class F_16D_52_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3122,10 +3189,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3136,10 +3206,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3152,10 +3225,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3196,9 +3272,9 @@ class F_16D_50_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -3379,9 +3455,9 @@ class F_16D_50_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -3503,9 +3579,9 @@ class F_16D_50_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -3583,10 +3659,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3627,9 +3706,9 @@ class F_16D_50_NS(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -3776,10 +3855,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3792,10 +3874,13 @@ class F_16D_50_NS(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -3990,10 +4075,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4004,10 +4092,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4020,10 +4111,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4065,9 +4159,9 @@ class F_16D_Barak_40(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -4248,9 +4342,9 @@ class F_16D_Barak_40(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -4360,9 +4454,9 @@ class F_16D_Barak_40(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -4428,10 +4522,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4473,9 +4570,9 @@ class F_16D_Barak_40(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -4622,10 +4719,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4638,10 +4738,13 @@ class F_16D_Barak_40(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4833,10 +4936,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4847,10 +4953,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4863,10 +4972,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -4908,9 +5020,9 @@ class F_16D_Barak_30(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -5091,9 +5203,9 @@ class F_16D_Barak_30(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -5203,9 +5315,9 @@ class F_16D_Barak_30(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -5271,10 +5383,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5316,9 +5431,9 @@ class F_16D_Barak_30(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -5465,10 +5580,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5481,10 +5599,13 @@ class F_16D_Barak_30(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5676,10 +5797,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (1, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (1, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (1, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (1, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            1,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (1, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (1, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5690,10 +5814,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (2, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (2, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (2, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (2, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            2,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (2, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (2, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5706,10 +5833,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (3, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (3, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (3, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (3, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            3,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (3, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (3, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -5750,9 +5880,9 @@ class F_16I(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (3, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             3,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (3, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (3, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -5933,9 +6063,9 @@ class F_16I(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (4, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             4,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (4, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (4, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -6057,9 +6187,9 @@ class F_16I(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (6, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             6,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (6, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (6, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -6137,10 +6267,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (7, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (7, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (7, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (7, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            7,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (7, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (7, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -6181,9 +6314,9 @@ class F_16I(PlaneType):
             Weapons.GBU_10___2000lb_Laser_Guided_Bomb,
         )
         GBU_12___500lb_Laser_Guided_Bomb = (7, Weapons.GBU_12___500lb_Laser_Guided_Bomb)
-        GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb = (
+        GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb = (
             7,
-            Weapons.GBU_24_Paveway_III___2000lb_Laser_Guided_Bomb,
+            Weapons.GBU_24A_B_Paveway_III___2000lb_Laser_Guided_Bomb,
         )
         CBU_87___202_x_CEM_Cluster_Bomb = (7, Weapons.CBU_87___202_x_CEM_Cluster_Bomb)
         CBU_97___10_x_SFW_Cluster_Bomb = (7, Weapons.CBU_97___10_x_SFW_Cluster_Bomb)
@@ -6330,10 +6463,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (8, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (8, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (8, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (8, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             8,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            8,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (8, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (8, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)
@@ -6346,10 +6482,13 @@ class F_16I(PlaneType):
         AIM_9M_Sidewinder_IR_AAM = (9, Weapons.AIM_9M_Sidewinder_IR_AAM)
         AIM_9L_Sidewinder_IR_AAM = (9, Weapons.AIM_9L_Sidewinder_IR_AAM)
         AIM_9X_Sidewinder_IR_AAM = (9, Weapons.AIM_9X_Sidewinder_IR_AAM)
-        AIM_120B_AMRAAM___Active_Rdr_AAM = (9, Weapons.AIM_120B_AMRAAM___Active_Rdr_AAM)
-        AIM_120C_5_AMRAAM___Active_Rdr_AAM = (
+        AIM_120B_AMRAAM___Active_Radar_AAM = (
             9,
-            Weapons.AIM_120C_5_AMRAAM___Active_Rdr_AAM,
+            Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
+        )
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
+            9,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         CATM_9M = (9, Weapons.CATM_9M)
         AN_ASQ_T50_TCTS_Pod___ACMI_Pod = (9, Weapons.AN_ASQ_T50_TCTS_Pod___ACMI_Pod)

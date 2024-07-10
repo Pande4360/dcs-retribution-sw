@@ -6,7 +6,7 @@ from typing import Type
 from game.ato.flightplans.ibuilder import IBuilder
 from game.ato.flightplans.patrolling import PatrollingFlightPlan, PatrollingLayout
 from game.ato.flightplans.waypointbuilder import WaypointBuilder
-from game.utils import Distance, Heading, Speed, feet, knots, meters, nautical_miles
+from game.utils import Distance, Heading, Speed, knots, meters, nautical_miles
 
 
 class AewcFlightPlan(PatrollingFlightPlan[PatrollingLayout]):
@@ -48,7 +48,9 @@ class Builder(IBuilder[AewcFlightPlan, PatrollingLayout]):
         orbit_heading = heading_to_threat_boundary
 
         # Station 80nm outside the threat zone.
-        threat_buffer = nautical_miles(80)
+        threat_buffer = nautical_miles(
+            self.coalition.game.settings.aewc_threat_buffer_min_distance
+        )
         if self.threat_zones.threatened(location.position):
             orbit_distance = distance_to_threat + threat_buffer
         else:
@@ -66,12 +68,9 @@ class Builder(IBuilder[AewcFlightPlan, PatrollingLayout]):
             orbit_heading.left.degrees, racetrack_half_distance
         )
 
-        builder = WaypointBuilder(self.flight, self.coalition)
+        builder = WaypointBuilder(self.flight)
 
-        if self.flight.unit_type.patrol_altitude is not None:
-            altitude = self.flight.unit_type.patrol_altitude
-        else:
-            altitude = feet(25000)
+        altitude = builder.get_patrol_altitude
 
         racetrack = builder.race_track(racetrack_start, racetrack_end, altitude)
 
@@ -88,7 +87,8 @@ class Builder(IBuilder[AewcFlightPlan, PatrollingLayout]):
             arrival=builder.land(self.flight.arrival),
             divert=builder.divert(self.flight.divert),
             bullseye=builder.bullseye(),
+            custom_waypoints=list(),
         )
 
-    def build(self) -> AewcFlightPlan:
+    def build(self, dump_debug_info: bool = False) -> AewcFlightPlan:
         return AewcFlightPlan(self.flight, self.layout())

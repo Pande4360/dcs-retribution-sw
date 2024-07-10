@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Iterator, Optional, Any, ClassVar
 
 import yaml
-from dcs.unitgroup import FlyingGroup
+from dcs.flyingunit import FlyingUnit
 from dcs.weapons_data import weapon_ids
 
 from game.dcs.aircrafttype import AircraftType
@@ -28,6 +28,17 @@ def weapons_migrator(name: str) -> str:
     }
     while name in migration_map:
         name = migration_map[name]
+    return name
+
+
+def weapons_migrator_lib(name: str) -> str:
+    # Splitting this from our own migrations
+    if "KH" in name:
+        return "Kh" + name[2:]
+    # UNCOMMENT BELOW WHEN IT BECOMES APPLICABLE
+    # migration_map = {}
+    # while name in migration_map:
+    #     name = migration_map[name]
     return name
 
 
@@ -111,6 +122,7 @@ class WeaponType(Enum):
     LGB = "LGB"
     TGP = "TGP"
     DECOY = "DECOY"
+    JAMMER = "JAMMER"
     UNKNOWN = "unknown"
 
 
@@ -152,7 +164,9 @@ class WeaponGroup:
 
     def __setstate__(self, state: dict[str, Any]) -> None:
         # Update any existing models with new data on load.
-        updated = WeaponGroup.named(weapons_migrator(state["name"]))
+        name = weapons_migrator(state["name"])
+        name = weapons_migrator_lib(name)
+        updated = WeaponGroup.named(name)
         state.update(updated.__dict__)
         self.__dict__.update(state)
 
@@ -264,10 +278,10 @@ class Pylon:
         # configuration.
         return weapon in self.allowed or weapon.clsid == "<CLEAN>"
 
-    def equip(self, group: FlyingGroup[Any], weapon: Weapon) -> None:
+    def equip(self, unit: FlyingUnit, weapon: Weapon) -> None:
         if not self.can_equip(weapon):
             logging.error(f"Pylon {self.number} cannot equip {weapon.name}")
-        group.load_pylon(self.make_pydcs_assignment(weapon), self.number)
+        unit.load_pylon(self.make_pydcs_assignment(weapon), self.number)
 
     def make_pydcs_assignment(self, weapon: Weapon) -> PydcsWeaponAssignment:
         return self.number, weapon.pydcs_data

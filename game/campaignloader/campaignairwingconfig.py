@@ -39,11 +39,13 @@ class SquadronConfig:
         else:
             secondary = [FlightType(s) for s in secondary_raw]
 
+        max_size = data.get("size", DEFAULT_SQUADRON_SIZE)
+
         return SquadronConfig(
             FlightType(data["primary"]),
             secondary,
             data.get("aircraft", []),
-            data.get("size", DEFAULT_SQUADRON_SIZE),
+            max_size,
             data.get("name", None),
             data.get("nickname", None),
             data.get("female_pilot_percentage", None),

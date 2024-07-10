@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
@@ -10,17 +11,22 @@ from typing import Any, ClassVar, Dict, Iterator, Optional, TYPE_CHECKING, Type
 import yaml
 from dcs.helicopters import helicopter_map
 from dcs.planes import plane_map
+from dcs.unitpropertydescription import UnitPropertyDescription
 from dcs.unittype import FlyingType
+from dcs.weapons_data import weapon_ids
 
+from game.ato import FlightType
 from game.data.units import UnitClass
-from game.dcs.unitproperty import UnitProperty
+from game.dcs.lasercodeconfig import LaserCodeConfig
 from game.dcs.unittype import UnitType
+from game.persistency import user_custom_weapon_injections_dir
 from game.radio.channels import (
     ApacheChannelNamer,
     ChannelNamer,
     CommonRadioChannelAllocator,
     FarmerRadioChannelAllocator,
     HueyChannelNamer,
+    LegacyWarthogChannelNamer,
     MirageChannelNamer,
     MirageF1CEChannelNamer,
     NoOpChannelAllocator,
@@ -32,6 +38,9 @@ from game.radio.channels import (
     ViggenChannelNamer,
     ViggenRadioChannelAllocator,
     ViperChannelNamer,
+    WarthogChannelNamer,
+    PhantomChannelNamer,
+    KiowaChannelNamer,
 )
 from game.utils import (
     Distance,
@@ -48,7 +57,6 @@ from game.utils import (
 )
 
 if TYPE_CHECKING:
-    from game.ato import FlightType
     from game.missiongenerator.aircraft.flightdata import FlightData
     from game.missiongenerator.missiondata import MissionData
     from game.radio.radios import Radio, RadioFrequency, RadioRegistry
@@ -106,6 +114,10 @@ class RadioConfig:
             "viggen": ViggenChannelNamer,
             "viper": ViperChannelNamer,
             "apache": ApacheChannelNamer,
+            "a10c-legacy": LegacyWarthogChannelNamer,
+            "a10c-ii": WarthogChannelNamer,
+            "phantom": PhantomChannelNamer,
+            "kiowa": KiowaChannelNamer,
         }[config.get("namer", "default")]
 
 
@@ -121,6 +133,21 @@ class PatrolConfig:
         return PatrolConfig(
             feet(altitude) if altitude is not None else None,
             knots(speed) if speed is not None else None,
+        )
+
+
+@dataclass(frozen=True)
+class AltitudesConfig:
+    cruise: Optional[Distance]
+    combat: Optional[Distance]
+
+    @classmethod
+    def from_data(cls, data: dict[str, Any]) -> AltitudesConfig:
+        cruise = data.get("cruise", None)
+        combat = data.get("combat", None)
+        return AltitudesConfig(
+            feet(cruise) if cruise is not None else None,
+            feet(combat) if combat is not None else None,
         )
 
 
@@ -174,6 +201,9 @@ class AircraftType(UnitType[Type[FlyingType]]):
     patrol_altitude: Optional[Distance]
     patrol_speed: Optional[Speed]
 
+    cruise_altitude: Optional[Distance]
+    combat_altitude: Optional[Distance]
+
     #: The maximum range between the origin airfield and the target for which the auto-
     #: planner will consider this aircraft usable for a mission.
     max_mission_range: Distance
@@ -200,15 +230,25 @@ class AircraftType(UnitType[Type[FlyingType]]):
     has_built_in_target_pod: bool
 
     task_priorities: dict[FlightType, int]
+    laser_code_configs: list[LaserCodeConfig]
+
+    use_f15e_waypoint_names: bool
 
     _by_name: ClassVar[dict[str, AircraftType]] = {}
     _by_unit_type: ClassVar[dict[type[FlyingType], list[AircraftType]]] = defaultdict(
         list
     )
 
+    def __post_init__(self) -> None:
+        enrich = {}
+        for t in self.task_priorities:
+            if t == FlightType.SEAD:
+                enrich[FlightType.SEAD_SWEEP] = self.task_priorities[t]
+        self.task_priorities.update(enrich)
+
     @classmethod
     def register(cls, unit_type: AircraftType) -> None:
-        cls._by_name[unit_type.name] = unit_type
+        cls._by_name[unit_type.variant_id] = unit_type
         cls._by_unit_type[unit_type.dcs_unit_type].append(unit_type)
 
     @property
@@ -227,33 +267,13 @@ class AircraftType(UnitType[Type[FlyingType]]):
     def max_speed(self) -> Speed:
         return kph(self.dcs_unit_type.max_speed)
 
-    @property
+    @cached_property
     def preferred_patrol_altitude(self) -> Distance:
-        if self.patrol_altitude is not None:
+        if self.patrol_altitude:
             return self.patrol_altitude
         else:
-            # Estimate based on max speed.
-            # Aircaft with max speed 600 kph will prefer patrol at 10 000 ft
-            # Aircraft with max speed 2800 kph will prefer pratrol at 33 000 ft
-            altitude_for_lowest_speed = feet(10 * 1000)
-            altitude_for_highest_speed = feet(33 * 1000)
-            lowest_speed = kph(600)
-            highest_speed = kph(2800)
-            factor = (self.max_speed - lowest_speed).kph / (
-                highest_speed - lowest_speed
-            ).kph
-            altitude = (
-                altitude_for_lowest_speed
-                + (altitude_for_highest_speed - altitude_for_lowest_speed) * factor
-            )
-            logging.debug(
-                f"Preferred patrol altitude for {self.dcs_unit_type.id}: {altitude.feet}"
-            )
-            rounded_altitude = feet(round(1000 * round(altitude.feet / 1000)))
-            return max(
-                altitude_for_lowest_speed,
-                min(altitude_for_highest_speed, rounded_altitude),
-            )
+            # TODO: somehow make the upper and lower limit configurable
+            return self.preferred_altitude(10, 33, "patrol")
 
     def preferred_patrol_speed(self, altitude: Distance) -> Speed:
         """Preferred true airspeed when patrolling"""
@@ -285,9 +305,51 @@ class AircraftType(UnitType[Type[FlyingType]]):
                 )
             else:
                 # Slow like warbirds or helicopters
-                # Use whichever is slowest - mach 0.35 or 70% of max speed
-                logging.debug(f"{self.name} max_speed * 0.7 is {max_speed * 0.7}")
-                return min(Speed.from_mach(0.35, altitude), max_speed * 0.7)
+                # Use whichever is slowest - mach 0.35 or 50% of max speed
+                logging.debug(
+                    f"{self.display_name} max_speed * 0.5 is {max_speed * 0.5}"
+                )
+                return min(Speed.from_mach(0.35, altitude), max_speed * 0.5)
+
+    @cached_property
+    def preferred_cruise_altitude(self) -> Distance:
+        if self.cruise_altitude:
+            return self.cruise_altitude
+        else:
+            # TODO: somehow make the upper and lower limit configurable
+            return self.preferred_altitude(20, 20, "cruise")
+
+    @cached_property
+    def preferred_combat_altitude(self) -> Distance:
+        if self.combat_altitude:
+            return self.combat_altitude
+        else:
+            # TODO: somehow make the upper and lower limit configurable
+            return self.preferred_altitude(20, 20, "combat")
+
+    def preferred_altitude(self, low: int, high: int, type: str) -> Distance:
+        # Estimate based on max speed.
+        # Aircraft with max speed 600 kph will prefer low
+        # Aircraft with max speed 2800 kph will prefer high
+        altitude_for_lowest_speed = feet(low * 1000)
+        altitude_for_highest_speed = feet(high * 1000)
+        lowest_speed = kph(600)
+        highest_speed = kph(2800)
+        factor = (self.max_speed - lowest_speed).kph / (
+            highest_speed - lowest_speed
+        ).kph
+        altitude = (
+            altitude_for_lowest_speed
+            + (altitude_for_highest_speed - altitude_for_lowest_speed) * factor
+        )
+        logging.debug(
+            f"Preferred {type} altitude for {self.dcs_unit_type.id}: {altitude.feet}"
+        )
+        rounded_altitude = feet(round(1000 * round(altitude.feet / 1000)))
+        return max(
+            altitude_for_lowest_speed,
+            min(altitude_for_highest_speed, rounded_altitude),
+        )
 
     def alloc_flight_radio(self, radio_registry: RadioRegistry) -> RadioFrequency:
         from game.radio.radios import ChannelInUseError, kHz
@@ -322,8 +384,18 @@ class AircraftType(UnitType[Type[FlyingType]]):
     def channel_name(self, radio_id: int, channel_id: int) -> str:
         return self.channel_namer.channel_name(radio_id, channel_id)
 
-    def iter_props(self) -> Iterator[UnitProperty[Any]]:
-        return UnitProperty.for_aircraft(self.dcs_unit_type)
+    @cached_property
+    def laser_code_prop_ids(self) -> set[str]:
+        laser_code_props: set[str] = set()
+        for laser_code_config in self.laser_code_configs:
+            laser_code_props.update(laser_code_config.iter_prop_ids())
+        return laser_code_props
+
+    def iter_props(self) -> Iterator[UnitPropertyDescription]:
+        yield from self.dcs_unit_type.properties.values()
+
+    def should_show_prop(self, prop_id: str) -> bool:
+        return prop_id not in self.laser_code_prop_ids
 
     def capable_of(self, task: FlightType) -> bool:
         return task in self.task_priorities
@@ -332,16 +404,24 @@ class AircraftType(UnitType[Type[FlyingType]]):
         return self.task_priorities[task]
 
     def __setstate__(self, state: dict[str, Any]) -> None:
+        # Save compat: the `name` field has been renamed `variant_id`.
+        if "name" in state:
+            state["variant_id"] = state.pop("name")
+
         # Update any existing models with new data on load.
-        updated = AircraftType.named(state["name"])
+        updated = AircraftType.named(state["variant_id"])
         state.update(updated.__dict__)
         self.__dict__.update(state)
+
+    @staticmethod
+    def _migrator() -> Dict[str, str]:
+        return {"F-15E Strike Eagle (AI)": "F-15E Strike Eagle"}
 
     @classmethod
     def named(cls, name: str) -> AircraftType:
         if not cls._loaded:
             cls._load_all()
-        return cls._by_name[name]
+        return cls._by_name[cls._migrator().get(name, name)]
 
     @classmethod
     def for_dcs_type(cls, dcs_unit_type: Type[FlyingType]) -> Iterator[AircraftType]:
@@ -374,11 +454,11 @@ class AircraftType(UnitType[Type[FlyingType]]):
 
     @staticmethod
     def _set_props_overrides(
-        config: Dict[str, Any], aircraft: Type[FlyingType], data_path: Path
+        config: Dict[str, Any], aircraft: Type[FlyingType]
     ) -> None:
         if aircraft.property_defaults is None:
             logging.warning(
-                f"'{data_path.name}' attempted to set default prop that does not exist."
+                f"'{aircraft.id}' attempted to set default prop that does not exist."
             )
         else:
             for k in config:
@@ -386,28 +466,25 @@ class AircraftType(UnitType[Type[FlyingType]]):
                     aircraft.property_defaults[k] = config[k]
                 else:
                     logging.warning(
-                        f"'{data_path.name}' attempted to set default prop '{k}' that does not exist"
+                        f"'{aircraft.id}' attempted to set default prop '{k}' that does not exist"
                     )
 
     @classmethod
-    def _each_variant_of(cls, aircraft: Type[FlyingType]) -> Iterator[AircraftType]:
-        # Replace slashes with underscores because slashes are not allowed in filenames
-        aircraft_id = aircraft.id.replace("/", "_")
-        data_path = Path("resources/units/aircraft") / f"{aircraft_id}.yaml"
-        if not data_path.exists():
-            logging.warning(f"No data for {aircraft_id}; it will not be available")
-            return
+    def _data_directory(cls) -> Path:
+        return Path("resources/units/aircraft")
 
-        with data_path.open(encoding="utf-8") as data_file:
-            data = yaml.safe_load(data_file)
-
+    @classmethod
+    def _variant_from_dict(
+        cls, aircraft: Type[FlyingType], variant_id: str, data: dict[str, Any]
+    ) -> AircraftType:
         try:
             price = data["price"]
         except KeyError as ex:
-            raise KeyError(f"Missing required price field: {data_path}") from ex
+            raise KeyError(f"Missing required price field") from ex
 
         radio_config = RadioConfig.from_data(data.get("radios", {}))
         patrol_config = PatrolConfig.from_data(data.get("patrol", {}))
+        altitudes_config = AltitudesConfig.from_data(data.get("altitudes", {}))
 
         try:
             mission_range = nautical_miles(int(data["max_range"]))
@@ -416,7 +493,7 @@ class AircraftType(UnitType[Type[FlyingType]]):
                 nautical_miles(50) if aircraft.helicopter else nautical_miles(150)
             )
             logging.warning(
-                f"{aircraft_id} does not specify a max_range. Defaulting to "
+                f"{variant_id} does not specify a max_range. Defaulting to "
                 f"{mission_range.nautical_miles}NM"
             )
 
@@ -447,7 +524,7 @@ class AircraftType(UnitType[Type[FlyingType]]):
 
         prop_overrides = data.get("default_overrides")
         if prop_overrides is not None:
-            cls._set_props_overrides(prop_overrides, aircraft, data_path)
+            cls._set_props_overrides(prop_overrides, aircraft)
 
         from game.ato.flighttype import FlightType
 
@@ -455,40 +532,86 @@ class AircraftType(UnitType[Type[FlyingType]]):
         for task_name, priority in data.get("tasks", {}).items():
             task_priorities[FlightType(task_name)] = priority
 
-        for variant in data.get("variants", [aircraft.id]):
-            yield AircraftType(
-                dcs_unit_type=aircraft,
-                name=variant,
-                description=data.get(
-                    "description",
-                    f"No data. <a href=\"https://google.com/search?q=DCS+{variant.replace(' ', '+')}\"><span style=\"color:#FFFFFF\">Google {variant}</span></a>",
-                ),
-                year_introduced=introduction,
-                country_of_origin=data.get("origin", "No data."),
-                manufacturer=data.get("manufacturer", "No data."),
-                role=data.get("role", "No data."),
-                price=price,
-                carrier_capable=data.get("carrier_capable", False),
-                lha_capable=data.get("lha_capable", False),
-                always_keeps_gun=data.get("always_keeps_gun", False),
-                gunfighter=data.get("gunfighter", False),
-                max_group_size=data.get("max_group_size", aircraft.group_size_max),
-                patrol_altitude=patrol_config.altitude,
-                patrol_speed=patrol_config.speed,
-                max_mission_range=mission_range,
-                fuel_consumption=fuel_consumption,
-                default_livery=data.get("default_livery"),
-                intra_flight_radio=radio_config.intra_flight,
-                channel_allocator=radio_config.channel_allocator,
-                channel_namer=radio_config.channel_namer,
-                kneeboard_units=units,
-                utc_kneeboard=data.get("utc_kneeboard", False),
-                unit_class=unit_class,
-                cabin_size=data.get("cabin_size", 10 if aircraft.helicopter else 0),
-                can_carry_crates=data.get("can_carry_crates", aircraft.helicopter),
-                has_built_in_target_pod=data.get("has_built_in_target_pod", False),
-                task_priorities=task_priorities,
-            )
+        if (
+            FlightType.SEAD_SWEEP not in task_priorities
+            and FlightType.SEAD in task_priorities
+        ):
+            task_priorities[FlightType.SEAD_SWEEP] = task_priorities[FlightType.SEAD]
+
+        cls._custom_weapon_injections(aircraft, data)
+        cls._user_weapon_injections(aircraft)
+
+        display_name = data.get("display_name", variant_id)
+        return AircraftType(
+            dcs_unit_type=aircraft,
+            variant_id=variant_id,
+            display_name=display_name,
+            description=data.get(
+                "description",
+                f"No data. <a href=\"https://google.com/search?q=DCS+{display_name.replace(' ', '+')}\"><span style=\"color:#FFFFFF\">Google {display_name}</span></a>",
+            ),
+            year_introduced=introduction,
+            country_of_origin=data.get("origin", "No data."),
+            manufacturer=data.get("manufacturer", "No data."),
+            role=data.get("role", "No data."),
+            price=price,
+            carrier_capable=data.get("carrier_capable", False),
+            lha_capable=data.get("lha_capable", False),
+            always_keeps_gun=data.get("always_keeps_gun", False),
+            gunfighter=data.get("gunfighter", False),
+            max_group_size=data.get("max_group_size", aircraft.group_size_max),
+            patrol_altitude=patrol_config.altitude,
+            patrol_speed=patrol_config.speed,
+            cruise_altitude=altitudes_config.cruise,
+            combat_altitude=altitudes_config.combat,
+            max_mission_range=mission_range,
+            fuel_consumption=fuel_consumption,
+            default_livery=data.get("default_livery"),
+            intra_flight_radio=radio_config.intra_flight,
+            channel_allocator=radio_config.channel_allocator,
+            channel_namer=radio_config.channel_namer,
+            kneeboard_units=units,
+            utc_kneeboard=data.get("utc_kneeboard", False),
+            unit_class=unit_class,
+            cabin_size=data.get("cabin_size", 10 if aircraft.helicopter else 0),
+            can_carry_crates=data.get("can_carry_crates", aircraft.helicopter),
+            task_priorities=task_priorities,
+            has_built_in_target_pod=data.get("has_built_in_target_pod", False),
+            laser_code_configs=[
+                LaserCodeConfig.from_yaml(d) for d in data.get("laser_codes", [])
+            ],
+            use_f15e_waypoint_names=data.get("use_f15e_waypoint_names", False),
+        )
+
+    @staticmethod
+    def _custom_weapon_injections(
+        aircraft: Type[FlyingType], data: Dict[str, Any]
+    ) -> None:
+        if (wpn_injection := data.get("weapon_injections")) is not None:
+            pylons = [
+                v
+                for v in aircraft.__dict__.values()
+                if inspect.isclass(v) and v.__name__.startswith(f"Pylon")
+            ]
+            pylons.sort(key=lambda x: int(x.__name__.replace("Pylon", "")))
+            for pylon_number, weapons in wpn_injection.items():
+                for w in weapons:
+                    weapon = weapon_ids[w]
+                    pylon = [
+                        pylon
+                        for pylon in pylons
+                        if int(pylon.__name__.replace("Pylon", "")) == pylon_number
+                    ][0]
+                    setattr(pylon, w, (pylon_number, weapon))
+
+    @staticmethod
+    def _user_weapon_injections(aircraft: Type[FlyingType]) -> None:
+        data_path = user_custom_weapon_injections_dir() / f"{aircraft.id}.yaml"
+        if not data_path.exists():
+            return
+        with data_path.open(encoding="utf-8") as data_file:
+            data = yaml.safe_load(data_file)
+        AircraftType._custom_weapon_injections(aircraft, data)
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self.variant_id)

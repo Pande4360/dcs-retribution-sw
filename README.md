@@ -2,7 +2,7 @@
 
 (Github Readme Banner and Splash screen Artwork by Andriy Dankovych, CC BY-SA 4.0)
 
-[![Patreon](https://img.shields.io/badge/patreon-become%20a%20patron-orange?logo=patreon)](https://patreon.com/khopa)
+[![Patreon](https://img.shields.io/badge/patreon-become%20a%20patron-orange?logo=patreon)](https://patreon.com/dcsliberation)
 
 [![Download](https://img.shields.io/github/downloads/dcs-retribution/dcs-retribution/total?label=Download)](https://github.com/dcs-retribution/dcs-retribution/releases)
 
@@ -15,7 +15,7 @@
 ## About DCS Retribution 
 (Last update: 2023-05-20)
 
-DCS Retribution was forked from [DCS Liberation](https://github.com/dcs-retribution/dcs-retribution),
+DCS Retribution was forked from [DCS Liberation](https://github.com/dcs-liberation/dcs_liberation),
 which is a [DCS World](https://www.digitalcombatsimulator.com/en/products/world/) turn based single-player or co-op dynamic campaign. 
 It is an external program that generates full and complex DCS missions and manage a persistent combat environment.
 
@@ -76,7 +76,7 @@ for that release. Items in the To do column are planned to be added to that rele
 Tutorials, contributors and developer's guides are available in the project's
 [Wiki](https://github.com/dcs-retribution/dcs-retribution/wiki/)
 
-(These need to be written again, meanwhile you can refer to
+(Some historical information is also availabe on
 [Liberation's Wiki](https://github.com/dcs-liberation/dcs_liberation/wiki/))
 
 ## Special Thanks
@@ -90,5 +90,6 @@ Excellent lua scripts DCS Liberation/Retribution uses as plugins:
 
 * For the JTAC feature, DCS Retribution embeds Ciribob's JTAC Autolase [script](https://github.com/ciribob/DCS-JTACAutoLaze).
 * Walder's [Skynet-IADS](https://github.com/walder/Skynet-IADS) is used for Integrated Air Defense System.
+* Carstens Arty Spotter https://www.digitalcombatsimulator.com/en/files/3339128/ is an amazing force multiplyer to drop the hammer on enemies.
 
 Please also show some support to these projects ! 

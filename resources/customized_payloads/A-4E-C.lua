@@ -43,7 +43,7 @@ local unitPayloads = {
 			["name"] = "CAP",
 			["pylons"] = {
 				[1] = {
-					["CLSID"] = "{CBU-1/A}",
+					["CLSID"] = "{AIM-9P5-ON-ADAPTER}",
 					["num"] = 4,
 				},
 				[2] = {
@@ -104,19 +104,19 @@ local unitPayloads = {
 			["name"] = "SEAD",
 			["pylons"] = {
 				[1] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 4,
 				},
 				[2] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 5,
 				},
 				[3] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 2,
 				},
 				[4] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 1,
 				},
 				[5] = {
@@ -132,19 +132,19 @@ local unitPayloads = {
 			["name"] = "ANTISHIP",
 			["pylons"] = {
 				[1] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 5,
 				},
 				[2] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 4,
 				},
 				[3] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 2,
 				},
 				[4] = {
-					["CLSID"] = "{AGM_45A}",
+					["CLSID"] = "{AGM_45B}",
 					["num"] = 1,
 				},
 				[5] = {

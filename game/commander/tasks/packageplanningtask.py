@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import itertools
 import operator
+import random
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, auto, unique
-import random
 from typing import Generic, Iterator, Optional, TYPE_CHECKING, TypeVar, Union
 
 from game.ato.flighttype import FlightType
@@ -105,6 +105,7 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
             self.package = fulfiller.plan_mission(
                 ProposedMission(self.target, self.flights),
                 self.purchase_multiplier,
+                state.context.now,
                 state.context.tracer,
             )
         return self.package is not None
@@ -112,6 +113,7 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
     def propose_common_escorts(self) -> None:
         self.propose_flight(FlightType.SEAD_ESCORT, 2, EscortType.Sead)
         self.propose_flight(FlightType.ESCORT, 2, EscortType.AirToAir)
+        self.propose_flight(FlightType.SEAD_SWEEP, 2, EscortType.Sead)
 
     def iter_iads_ranges(
         self, state: TheaterState, range_type: RangeType

@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 MAJOR_VERSION = 1
-MINOR_VERSION = 2
+MINOR_VERSION = 4
 MICRO_VERSION = 0
 
 
@@ -30,7 +30,7 @@ def _build_version_string() -> str:
     return "-".join(components)
 
 
-#: Current version of Liberation.
+#: Current version of Retribution.
 VERSION = _build_version_string()
 
 #: The latest version of the campaign format. Increment this version whenever all
@@ -125,7 +125,7 @@ VERSION = _build_version_string()
 #:
 #: Version 9.0
 #: * Campaign files now define the initial squadron layouts. See
-#:   https://github.com/dcs-liberation/dcs_liberation/wiki/Custom-Campaigns.
+#:   https://github.com/dcs-retribution/dcs-retribution/wiki/Custom-Campaigns.
 #: * CV and LHA control points now get their names from the group name in the campaign
 #:   miz.
 #:
@@ -172,7 +172,7 @@ VERSION = _build_version_string()
 #: * Support for scenery objectives defined by quad zones.
 #: * Campaign designers can now define almost all settings:
 #:    `settings:`
-#:    `  max_frontline_length: 25`        (in km)
+#:    `  max_frontline_width: 25`        (in km)
 #:    `  perf_culling_distance: 35`    (in km)
 #:
 #: Version 10.6
@@ -182,5 +182,7 @@ VERSION = _build_version_string()
 #:
 #: Version 10.7
 #: * Support for defining squadron sizes.
+#: * Definition of "spawn-routes" allowing convoys to spawn on the road
+#:      please note that an insufficiently long route can cause trouble in case of large convoys
 
 CAMPAIGN_FORMAT_VERSION = (10, 7)

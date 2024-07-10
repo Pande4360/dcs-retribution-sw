@@ -64,7 +64,7 @@ class FrontLineConflictDescription:
         attack_heading = frontline.blue_forward_heading
         position = cls.find_ground_position(
             frontline.position,
-            settings.max_frontline_length * 1000,
+            settings.max_frontline_width * 1000,
             attack_heading.right,
             theater,
         )
@@ -72,23 +72,24 @@ class FrontLineConflictDescription:
 
     @classmethod
     def frontline_bounds(
-        cls, front_line: FrontLine, theater: ConflictTheater, settings: Settings
+        cls, front_line: FrontLine, theater: ConflictTheater
     ) -> FrontLineBounds:
         """
         Returns a vector for a valid frontline location avoiding exclusion zones.
         """
+        settings = front_line.coalition.game.settings
         center_position, heading = cls.frontline_position(front_line, theater, settings)
         left_heading = heading.left
         right_heading = heading.right
         left_position = cls.extend_ground_position(
             center_position,
-            int(settings.max_frontline_length * 1000 / 2),
+            int(settings.max_frontline_width * 1000 / 2),
             left_heading,
             theater,
         )
         right_position = cls.extend_ground_position(
             center_position,
-            int(settings.max_frontline_length * 1000 / 2),
+            int(settings.max_frontline_width * 1000 / 2),
             right_heading,
             theater,
         )
@@ -96,12 +97,12 @@ class FrontLineConflictDescription:
 
     @classmethod
     def frontline_cas_conflict(
-        cls, front_line: FrontLine, theater: ConflictTheater, settings: Settings
+        cls, front_line: FrontLine, theater: ConflictTheater
     ) -> FrontLineConflictDescription:
         # TODO: Break apart the front-line and air conflict descriptions.
         # We're wastefully not caching the front-line bounds here because air conflicts
         # can't compute bounds, only a position.
-        bounds = cls.frontline_bounds(front_line, theater, settings)
+        bounds = cls.frontline_bounds(front_line, theater)
         conflict = cls(
             theater=theater,
             front_line=front_line,

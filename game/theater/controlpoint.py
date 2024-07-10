@@ -28,6 +28,7 @@ from uuid import UUID
 
 from dcs.mapping import Point
 from dcs.ships import (
+    ara_vdm,
     CVN_71,
     CVN_72,
     CVN_73,
@@ -38,7 +39,7 @@ from dcs.ships import (
     LHA_Tarawa,
     Stennis,
     Type_071,
-    Hms_invincible,
+    hms_invincible,
 )
 from dcs.terrain.terrain import Airport, ParkingSlot
 from dcs.unitgroup import ShipGroup, StaticGroup
@@ -87,6 +88,7 @@ if TYPE_CHECKING:
     from game import Game
     from game.ato.flighttype import FlightType
     from game.coalition import Coalition
+    from game.lasercodes.lasercoderegistry import LaserCodeRegistry
     from game.sim import GameUpdateEvents
     from game.squadrons.squadron import Squadron
     from game.transfers import PendingTransfers
@@ -94,6 +96,7 @@ if TYPE_CHECKING:
 
 FREE_FRONTLINE_UNIT_SUPPLY: int = 15
 AMMO_DEPOT_FRONTLINE_UNIT_CONTRIBUTION: int = 12
+TRIGGER_RADIUS_CAPTURE = 3000
 
 
 class ControlPointType(Enum):
@@ -255,6 +258,10 @@ class RunwayStatus:
         # is reset.
         self.repair_turns_remaining = None
 
+    def repair(self) -> None:
+        self.repair_turns_remaining = None
+        self.damaged = False
+
     def begin_repair(self) -> None:
         if self.repair_turns_remaining is not None:
             logging.error("Runway already under repair. Restarting.")
@@ -263,8 +270,7 @@ class RunwayStatus:
     def process_turn(self) -> None:
         if self.repair_turns_remaining is not None:
             if self.repair_turns_remaining == 1:
-                self.repair_turns_remaining = None
-                self.damaged = False
+                self.repair()
             else:
                 self.repair_turns_remaining -= 1
 
@@ -315,10 +321,51 @@ class ControlPointStatus(IntEnum):
 StartingPosition = Union[ShipGroup, StaticGroup, Airport, Point]
 
 
+class ParkingType:
+    def __init__(
+        self,
+        fixed_wing: bool = False,
+        fixed_wing_stol: bool = False,
+        rotary_wing: bool = False,
+    ) -> None:
+        self.include_fixed_wing = fixed_wing
+        self.include_fixed_wing_stol = fixed_wing_stol
+        self.include_rotary_wing = rotary_wing
+
+    def from_squadron(self, squadron: Squadron) -> ParkingType:
+        return self.from_aircraft(
+            squadron.aircraft, squadron.coalition.game.settings.ground_start_ai_planes
+        )
+
+    def from_aircraft(
+        self, aircraft: AircraftType, ground_start_ai_planes: bool
+    ) -> ParkingType:
+        if aircraft.helicopter or aircraft.lha_capable:
+            self.include_rotary_wing = True
+            self.include_fixed_wing = True
+            self.include_fixed_wing_stol = True
+        elif aircraft.flyable or ground_start_ai_planes:
+            self.include_rotary_wing = False
+            self.include_fixed_wing = True
+            self.include_fixed_wing_stol = True
+        else:
+            self.include_rotary_wing = False
+            self.include_fixed_wing = True
+            self.include_fixed_wing_stol = False
+        return self
+
+    #: Fixed wing aircraft with no STOL or VTOL capability
+    include_fixed_wing: bool
+    #: Fixed wing aircraft with STOL capability
+    include_fixed_wing_stol: bool
+    #: Helicopters and VTOL aircraft
+    include_rotary_wing: bool
+
+
 class ControlPoint(MissionTarget, SidcDescribable, ABC):
     # Not sure what distance DCS uses, but assuming it's about 2NM since that's roughly
     # the distance of the circle on the map.
-    CAPTURE_DISTANCE = nautical_miles(2)
+    CAPTURE_DISTANCE = meters(TRIGGER_RADIUS_CAPTURE)
 
     # TODO: Only airbases have IDs.
     # TODO: cptype is obsolete.
@@ -340,6 +387,11 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         self.connected_objectives: List[TheaterGroundObject] = []
         self.preset_locations = PresetLocations()
         self.helipads: List[PointWithHeading] = []
+        self.helipads_quad: List[PointWithHeading] = []
+        self.helipads_invisible: List[PointWithHeading] = []
+        self.ground_spawns_roadbase: List[Tuple[PointWithHeading, Point]] = []
+        self.ground_spawns_large: List[Tuple[PointWithHeading, Point]] = []
+        self.ground_spawns: List[Tuple[PointWithHeading, Point]] = []
 
         self._coalition: Optional[Coalition] = None
         self.captured_invert = False
@@ -347,6 +399,7 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         # TODO: Should be Airbase specific.
         self.connected_points: List[ControlPoint] = []
         self.convoy_routes: Dict[ControlPoint, Tuple[Point, ...]] = {}
+        self.convoy_spawns: Dict[ControlPoint, Tuple[Point, ...]] = {}
         self.shipping_lanes: Dict[ControlPoint, Tuple[Point, ...]] = {}
         self.base: Base = Base()
         self.cptype = cptype
@@ -380,42 +433,50 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         assert self._front_line_db is None
         self._front_line_db = game.db.front_lines
 
-    def initialize_turn_0(self) -> None:
+    def initialize_turn_0(self, laser_code_registry: LaserCodeRegistry) -> None:
         # We don't need to send events for turn 0. The UI isn't up yet, and it'll fetch
         # the entire game state when it comes up.
         from game.sim import GameUpdateEvents
 
-        self._create_missing_front_lines(GameUpdateEvents())
+        self._create_missing_front_lines(laser_code_registry, GameUpdateEvents())
 
     @property
     def front_line_db(self) -> Database[FrontLine]:
         assert self._front_line_db is not None
         return self._front_line_db
 
-    def _create_missing_front_lines(self, events: GameUpdateEvents) -> None:
+    def _create_missing_front_lines(
+        self, laser_code_registry: LaserCodeRegistry, events: GameUpdateEvents
+    ) -> None:
         for connection in self.convoy_routes.keys():
             if not connection.front_line_active_with(
                 self
             ) and not connection.is_friendly_to(self):
-                self._create_front_line_with(connection, events)
+                self._create_front_line_with(laser_code_registry, connection, events)
 
     def _create_front_line_with(
-        self, connection: ControlPoint, events: GameUpdateEvents
+        self,
+        laser_code_registry: LaserCodeRegistry,
+        connection: ControlPoint,
+        events: GameUpdateEvents,
     ) -> None:
         blue, red = FrontLine.sort_control_points(self, connection)
-        front = FrontLine(blue, red)
+        front = FrontLine(blue, red, laser_code_registry.alloc_laser_code())
         self.front_lines[connection] = front
         connection.front_lines[self] = front
         self.front_line_db.add(front.id, front)
         events.update_front_line(front)
 
     def _remove_front_line_with(
-        self, connection: ControlPoint, events: GameUpdateEvents
+        self,
+        connection: ControlPoint,
+        events: GameUpdateEvents,
     ) -> None:
         front = self.front_lines[connection]
         del self.front_lines[connection]
         del connection.front_lines[self]
         self.front_line_db.remove(front.id)
+        front.laser_code.release()
         events.delete_front_line(front)
 
     def _clear_front_lines(self, events: GameUpdateEvents) -> None:
@@ -512,6 +573,23 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
             connected.extend(cp.transitive_friendly_shipping_destinations(seen))
         return connected
 
+    def transitive_connected_friendly_destinations(
+        self, seen: Optional[Set[ControlPoint]] = None
+    ) -> List[ControlPoint]:
+        if seen is None:
+            seen = {self}
+
+        connected = []
+        for cp in set(self.connected_points + list(self.shipping_lanes.keys())):
+            if cp.captured != self.captured:
+                continue
+            if cp in seen:
+                continue
+            seen.add(cp)
+            connected.append(cp)
+            connected.extend(cp.transitive_connected_friendly_destinations(seen))
+        return connected
+
     @property
     def has_factory(self) -> bool:
         for tgo in self.connected_objectives:
@@ -524,7 +602,22 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         """
         Returns true if cp has helipads
         """
-        return len(self.helipads) > 0
+        return (
+            len(self.helipads) + len(self.helipads_quad) + len(self.helipads_invisible)
+            > 0
+        )
+
+    @property
+    def has_ground_spawns(self) -> bool:
+        """
+        Returns true if cp can operate STOL aircraft
+        """
+        return (
+            len(self.ground_spawns_roadbase)
+            + len(self.ground_spawns_large)
+            + len(self.ground_spawns)
+            > 0
+        )
 
     def can_recruit_ground_units(self, game: Game) -> bool:
         """Returns True if this control point is capable of recruiting ground units."""
@@ -570,6 +663,17 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         return False
 
     @property
+    def is_fob(self) -> bool:
+        """
+        :return: Whether this control point is a FOB
+        """
+        return False
+
+    @property
+    def is_offmap(self) -> bool:
+        return False
+
+    @property
     def moveable(self) -> bool:
         """
         :return: Whether this control point can be moved around
@@ -589,9 +693,8 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
     def can_deploy_ground_units(self) -> bool:
         ...
 
-    @property
     @abstractmethod
-    def total_aircraft_parking(self) -> int:
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
         """
         :return: The maximum number of aircraft that can be stored in this
                  control point
@@ -604,10 +707,13 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
     def convoy_route_to(self, destination: ControlPoint) -> Sequence[Point]:
         return self.convoy_routes[destination]
 
-    def create_convoy_route(self, to: ControlPoint, waypoints: Iterable[Point]) -> None:
+    def create_convoy_route(
+        self, to: ControlPoint, waypoints: Iterable[Point], spawns: Iterable[Point]
+    ) -> None:
         self.connected_points.append(to)
         self.stances[to.id] = CombatStance.DEFENSIVE
         self.convoy_routes[to] = tuple(waypoints)
+        self.convoy_spawns[to] = tuple(spawns)
 
     def create_shipping_lane(
         self, to: ControlPoint, waypoints: Iterable[Point]
@@ -757,20 +863,31 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         self, squadron: Squadron
     ) -> Optional[ControlPoint]:
         closest = ObjectiveDistanceCache.get_closest_airfields(self)
-        max_retreat_distance = squadron.aircraft.max_mission_range
+        # Multiply the max mission range by two when evaluating retreats,
+        # since you only need to fly one way in that case
+        max_retreat_distance = squadron.aircraft.max_mission_range * 2
         # Skip the first airbase because that's the airbase we're retreating
         # from.
         airfields = list(closest.operational_airfields_within(max_retreat_distance))[1:]
         not_preferred: Optional[ControlPoint] = None
         overfull: list[ControlPoint] = []
+
+        parking_type = ParkingType().from_squadron(squadron)
+
         for airbase in airfields:
             if airbase.captured != self.captured:
                 continue
 
-            if airbase.unclaimed_parking() < squadron.owned_aircraft:
+            if airbase.unclaimed_parking(parking_type) < squadron.owned_aircraft:
                 if airbase.can_operate(squadron.aircraft):
                     overfull.append(airbase)
                 continue
+            elif isinstance(airbase, Airfield):
+                dcs_unit_type = squadron.aircraft.dcs_unit_type
+                free_slots = airbase.airport.free_parking_slots(dcs_unit_type)
+                if len(free_slots) < squadron.owned_aircraft or len(free_slots) == 0:
+                    overfull.append(airbase)
+                    continue
 
             if squadron.operates_from(airbase):
                 # Has room, is a preferred base type for this squadron, and is the
@@ -794,7 +911,7 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         loss_count = math.inf
         for airbase in overfull:
             overflow = -(
-                airbase.unclaimed_parking()
+                airbase.unclaimed_parking(parking_type)
                 - squadron.owned_aircraft
                 - squadron.pending_deliveries
             )
@@ -809,10 +926,13 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
             squadron.refund_orders()
             self.capture_aircraft(game, squadron.aircraft, squadron.owned_aircraft)
             return
+
+        parking_type = ParkingType().from_squadron(squadron)
+
         logging.debug(f"{squadron} retreating to {destination} from {self}")
         squadron.relocate_to(destination)
         squadron.cancel_overflow_orders()
-        overflow = -destination.unclaimed_parking()
+        overflow = -destination.unclaimed_parking(parking_type)
         if overflow > 0:
             logging.debug(
                 f"Not enough room for {squadron} at {destination}. Capturing "
@@ -832,17 +952,21 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
             if not tgo.capturable:
                 tgo.clear()
 
+    def release_parking_slots(self) -> None:
+        pass
+
     # TODO: Should be Airbase specific.
     def capture(self, game: Game, events: GameUpdateEvents, for_player: bool) -> None:
         new_coalition = game.coalition_for(for_player)
         self.ground_unit_orders.refund_all(self.coalition)
         self.retreat_ground_units(game)
         self.retreat_air_units(game)
+        self.release_parking_slots()
         self.depopulate_uncapturable_tgos()
         self._coalition = new_coalition
         self.base.set_strength_to_minimum()
         self._clear_front_lines(events)
-        self._create_missing_front_lines(events)
+        self._create_missing_front_lines(game.laser_code_registry, events)
         events.update_control_point(self)
 
         # All the attached TGOs have either been depopulated or captured. Tell the UI to
@@ -865,8 +989,11 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
     def can_operate(self, aircraft: AircraftType) -> bool:
         ...
 
-    def unclaimed_parking(self) -> int:
-        return self.total_aircraft_parking - self.allocated_aircraft().total
+    def unclaimed_parking(self, parking_type: ParkingType) -> int:
+        return (
+            self.total_aircraft_parking(parking_type)
+            - self.allocated_aircraft(parking_type).total
+        )
 
     @abstractmethod
     def active_runway(
@@ -892,6 +1019,11 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
 
     @property
     @abstractmethod
+    def runway_is_destroyable(self) -> bool:
+        ...
+
+    @property
+    @abstractmethod
     def runway_status(self) -> RunwayStatus:
         ...
 
@@ -906,7 +1038,13 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
         self.runway_status.begin_repair()
 
     def process_turn(self, game: Game) -> None:
-        self.ground_unit_orders.process(game)
+        # We're running at the end of the turn, so the time right now is irrelevant, and
+        # we don't know what time the next turn will start yet. It doesn't actually
+        # matter though, because the first thing the start of turn action will do is
+        # clear the ATO and replan the airlifts with the correct time.
+        self.ground_unit_orders.process(game, game.conditions.start_time)
+
+        self.release_parking_slots()
 
         runway_status = self.runway_status
         if runway_status is not None:
@@ -928,17 +1066,33 @@ class ControlPoint(MissionTarget, SidcDescribable, ABC):
                             u.position.x = u.position.x + delta.x
                             u.position.y = u.position.y + delta.y
 
-    def allocated_aircraft(self) -> AircraftAllocations:
+    def allocated_aircraft(self, parking_type: ParkingType) -> AircraftAllocations:
         present: dict[AircraftType, int] = defaultdict(int)
         on_order: dict[AircraftType, int] = defaultdict(int)
         transferring: dict[AircraftType, int] = defaultdict(int)
         for squadron in self.squadrons:
+            if not parking_type.include_rotary_wing and (
+                squadron.aircraft.helicopter or squadron.aircraft.lha_capable
+            ):
+                continue
+            elif not parking_type.include_fixed_wing and (
+                not squadron.aircraft.helicopter or squadron.aircraft.lha_capable
+            ):
+                continue
             present[squadron.aircraft] += squadron.owned_aircraft
             if squadron.destination is None:
                 on_order[squadron.aircraft] += squadron.pending_deliveries
             else:
                 transferring[squadron.aircraft] -= squadron.owned_aircraft
         for squadron in self.coalition.air_wing.iter_squadrons():
+            if not parking_type.include_rotary_wing and (
+                squadron.aircraft.helicopter or squadron.aircraft.lha_capable
+            ):
+                continue
+            elif not parking_type.include_fixed_wing and (
+                not squadron.aircraft.helicopter or squadron.aircraft.lha_capable
+            ):
+                continue
             if squadron.destination == self:
                 on_order[squadron.aircraft] += squadron.pending_deliveries
                 transferring[squadron.aircraft] += squadron.owned_aircraft
@@ -1089,11 +1243,14 @@ class Airfield(ControlPoint, CTLD):
         # Needs ground spawns just like helos do, but also need to be able to
         # limit takeoff weight to ~20500 lbs or it won't be able to take off.
 
-        # return false if aircraft is fixed wing and airport has no runways
-        if not aircraft.helicopter and not self.airport.runways:
-            return False
-        else:
-            return self.runway_is_operational()
+        parking_type = ParkingType().from_aircraft(
+            aircraft, self.coalition.game.settings.ground_start_ai_planes
+        )
+        if parking_type.include_rotary_wing and self.has_helipads:
+            return True
+        if parking_type.include_fixed_wing_stol and self.has_ground_spawns:
+            return True
+        return self.runway_is_operational()
 
     def mission_types(self, for_player: bool) -> Iterator[FlightType]:
         from game.ato import FlightType
@@ -1116,18 +1273,38 @@ class Airfield(ControlPoint, CTLD):
 
         yield FlightType.REFUELING
 
-    @property
-    def total_aircraft_parking(self) -> int:
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
         """
         Return total aircraft parking slots available
         Note : additional helipads shouldn't contribute to this score as it could allow airfield
         to buy more planes than what they are able to host
         """
-        return len(self.airport.parking_slots)
+        parking_slots = 0
+        if parking_type.include_rotary_wing:
+            parking_slots += (
+                len(self.helipads)
+                + 4 * len(self.helipads_quad)
+                + len(self.helipads_invisible)
+            )
+        if parking_type.include_fixed_wing_stol:
+            parking_slots += len(self.ground_spawns)
+            parking_slots += len(self.ground_spawns_roadbase)
+            parking_slots += len(self.ground_spawns_large)
+        if parking_type.include_fixed_wing:
+            parking_slots += len(self.airport.parking_slots)
+        return parking_slots
+
+    def release_parking_slots(self) -> None:
+        for slot in self.parking_slots:
+            slot.unit_id = None
 
     @property
     def heading(self) -> Heading:
         return Heading.from_degrees(self.airport.runways[0].heading)
+
+    @property
+    def runway_is_destroyable(self) -> bool:
+        return True
 
     def runway_is_operational(self) -> bool:
         return not self.runway_status.damaged
@@ -1189,6 +1366,8 @@ class Airfield(ControlPoint, CTLD):
 class NavalControlPoint(
     ControlPoint, ABC, Link4Container, TacanContainer, ICLSContainer
 ):
+    carrier_id: Optional[int] = None
+
     @property
     def is_fleet(self) -> bool:
         return True
@@ -1220,21 +1399,31 @@ class NavalControlPoint(
                 return g
         raise RuntimeError(f"Found no carrier/LHA group for {self.name}")
 
+    @property
+    def runway_is_destroyable(self) -> bool:
+        return False
+
     def runway_is_operational(self) -> bool:
         # Necessary because it's possible for the carrier itself to have sunk
         # while its escorts are still alive.
         for group in self.find_main_tgo().groups:
             for u in group.units:
                 if u.alive and u.type in [
+                    ara_vdm,
                     Forrestal,
                     Stennis,
                     LHA_Tarawa,
                     KUZNECOW,
                     Type_071,
-                    Hms_invincible,
+                    hms_invincible,
                     L02,
                     L52,
                     L61,
+                    CV_1143_5,
+                    CVN_71,
+                    CVN_72,
+                    CVN_73,
+                    CVN_75,
                 ]:
                     return True
         return False
@@ -1275,6 +1464,10 @@ class NavalControlPoint(
             return ControlPointStatus.Damaged
         return ControlPointStatus.Functional
 
+    @property
+    def airdrome_id_for_landing(self) -> Optional[int]:
+        return self.carrier_id
+
 
 class Carrier(NavalControlPoint):
     def __init__(
@@ -1313,8 +1506,7 @@ class Carrier(NavalControlPoint):
     def can_operate(self, aircraft: AircraftType) -> bool:
         return aircraft.carrier_capable
 
-    @property
-    def total_aircraft_parking(self) -> int:
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
         return 90
 
     @property
@@ -1344,8 +1536,7 @@ class Lha(NavalControlPoint):
     def can_operate(self, aircraft: AircraftType) -> bool:
         return aircraft.lha_capable
 
-    @property
-    def total_aircraft_parking(self) -> int:
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
         return 20
 
     @property
@@ -1379,8 +1570,7 @@ class OffMapSpawn(ControlPoint):
     def mission_types(self, for_player: bool) -> Iterator[FlightType]:
         yield from []
 
-    @property
-    def total_aircraft_parking(self) -> int:
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
         return 1000
 
     def can_operate(self, aircraft: AircraftType) -> bool:
@@ -1404,6 +1594,10 @@ class OffMapSpawn(ControlPoint):
         return self.stub_runway_data()
 
     @property
+    def runway_is_destroyable(self) -> bool:
+        return False
+
+    @property
     def runway_status(self) -> RunwayStatus:
         return RunwayStatus()
 
@@ -1418,6 +1612,10 @@ class OffMapSpawn(ControlPoint):
     @property
     def status(self) -> ControlPointStatus:
         return ControlPointStatus.Functional
+
+    @property
+    def is_offmap(self) -> bool:
+        return True
 
 
 class Fob(ControlPoint, RadioFrequencyContainer, CTLD):
@@ -1439,8 +1637,12 @@ class Fob(ControlPoint, RadioFrequencyContainer, CTLD):
     def symbol_set_and_entity(self) -> tuple[SymbolSet, Entity]:
         return SymbolSet.LAND_INSTALLATIONS, LandInstallationEntity.MILITARY_BASE
 
+    @property
+    def runway_is_destroyable(self) -> bool:
+        return False
+
     def runway_is_operational(self) -> bool:
-        return self.has_helipads
+        return self.has_helipads or self.has_ground_spawns
 
     def active_runway(
         self,
@@ -1461,22 +1663,46 @@ class Fob(ControlPoint, RadioFrequencyContainer, CTLD):
         if not self.is_friendly(for_player):
             yield FlightType.STRIKE
             yield FlightType.AIR_ASSAULT
+            if self.total_aircraft_parking(ParkingType(True, True, True)):
+                yield FlightType.OCA_AIRCRAFT
         else:
             yield FlightType.AEWC
 
         yield from super().mission_types(for_player)
 
-    @property
-    def total_aircraft_parking(self) -> int:
-        return len(self.helipads)
+    def total_aircraft_parking(self, parking_type: ParkingType) -> int:
+        parking_slots = 0
+        if parking_type.include_rotary_wing:
+            parking_slots += (
+                len(self.helipads)
+                + 4 * len(self.helipads_quad)
+                + len(self.helipads_invisible)
+            )
+
+        if parking_type.include_fixed_wing_stol:
+            try:
+                parking_slots += len(self.ground_spawns)
+            except AttributeError:
+                self.ground_spawns_roadbase = []
+            try:
+                parking_slots += len(self.ground_spawns_roadbase)
+            except AttributeError:
+                self.ground_spawns_large = []
+            try:
+                parking_slots += len(self.ground_spawns_large)
+            except AttributeError:
+                self.ground_spawns = []
+        return parking_slots
 
     def can_operate(self, aircraft: AircraftType) -> bool:
-        # FOBs and FARPs are the same class, distinguished only by non-FARP FOBs having
-        # zero parking.
-        # https://github.com/dcs-liberation/dcs_liberation/issues/2378
-        return (
-            aircraft.helicopter or aircraft.lha_capable
-        ) and self.total_aircraft_parking > 0
+        parking_type = ParkingType().from_aircraft(
+            aircraft, self.coalition.game.settings.ground_start_ai_planes
+        )
+        if parking_type.include_rotary_wing and self.has_helipads:
+            return True
+        if parking_type.include_fixed_wing_stol and self.has_ground_spawns:
+            return True
+        return False
 
     @property
     def heading(self) -> Heading:
@@ -1489,6 +1715,13 @@ class Fob(ControlPoint, RadioFrequencyContainer, CTLD):
     @property
     def income_per_turn(self) -> int:
         return 10
+
+    @property
+    def is_fob(self) -> bool:
+        """
+        :return: Whether this control point is a FOB
+        """
+        return True
 
     @property
     def category(self) -> str:

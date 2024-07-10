@@ -45,7 +45,14 @@ class AirWing:
             return False
 
     def best_squadrons_for(
-        self, location: MissionTarget, task: FlightType, size: int, this_turn: bool
+        self,
+        location: MissionTarget,
+        task: FlightType,
+        size: int,
+        heli: bool,
+        this_turn: bool,
+        preferred_type: Optional[AircraftType] = None,
+        ignore_range: bool = False,
     ) -> list[Squadron]:
         airfield_cache = ObjectiveDistanceCache.get_closest_airfields(location)
         best_aircraft = AircraftType.priority_list_for_task(task)
@@ -54,8 +61,16 @@ class AirWing:
             if control_point.captured != self.player:
                 continue
             capable_at_base = []
-            for squadron in control_point.squadrons:
-                if squadron.can_auto_assign_mission(location, task, size, this_turn):
+            squadrons = [
+                s
+                for s in control_point.squadrons
+                if not preferred_type
+                or s.aircraft.variant_id == preferred_type.variant_id
+            ]
+            for squadron in squadrons:
+                if squadron.can_auto_assign_mission(
+                    location, task, size, heli, this_turn, ignore_range
+                ):
                     capable_at_base.append(squadron)
                     if squadron.aircraft not in best_aircraft:
                         # If it is not already in the list it should be the last one
@@ -79,9 +94,18 @@ class AirWing:
         )
 
     def best_squadron_for(
-        self, location: MissionTarget, task: FlightType, size: int, this_turn: bool
+        self,
+        location: MissionTarget,
+        task: FlightType,
+        size: int,
+        heli: bool,
+        this_turn: bool,
+        preferred_type: Optional[AircraftType] = None,
+        ignore_range: bool = False,
     ) -> Optional[Squadron]:
-        for squadron in self.best_squadrons_for(location, task, size, this_turn):
+        for squadron in self.best_squadrons_for(
+            location, task, size, heli, this_turn, preferred_type, ignore_range
+        ):
             return squadron
         return None
 

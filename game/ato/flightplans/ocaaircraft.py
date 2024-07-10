@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Type
 
-from game.theater import Airfield
+from game.theater import Airfield, Fob
 from .formationattack import (
     FormationAttackBuilder,
     FormationAttackFlightPlan,
@@ -23,7 +23,7 @@ class Builder(FormationAttackBuilder[OcaAircraftFlightPlan, FormationAttackLayou
     def layout(self) -> FormationAttackLayout:
         location = self.package.target
 
-        if not isinstance(location, Airfield):
+        if not isinstance(location, Airfield) and not isinstance(location, Fob):
             logging.exception(
                 f"Invalid Objective Location for OCA/Aircraft flight "
                 f"{self.flight=} at {location=}."
@@ -32,5 +32,5 @@ class Builder(FormationAttackBuilder[OcaAircraftFlightPlan, FormationAttackLayou
 
         return self._build(FlightWaypointType.INGRESS_OCA_AIRCRAFT)
 
-    def build(self) -> OcaAircraftFlightPlan:
+    def build(self, dump_debug_info: bool = False) -> OcaAircraftFlightPlan:
         return OcaAircraftFlightPlan(self.flight, self.layout())

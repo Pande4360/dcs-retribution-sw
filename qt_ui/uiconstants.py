@@ -1,7 +1,7 @@
 import os
 from typing import Dict
 
-from PySide2.QtGui import QPixmap
+from PySide6.QtGui import QPixmap
 
 from .liberation_theme import get_theme_icons
 
@@ -16,9 +16,7 @@ URLS: Dict[str, str] = {
 LABELS_OPTIONS = ["Full", "Abbreviated", "Dot Only", "Neutral Dot", "Off"]
 SKILL_OPTIONS = ["Average", "Good", "High", "Excellent"]
 
-AIRCRAFT_BANNERS: Dict[str, QPixmap] = {}
 AIRCRAFT_ICONS: Dict[str, QPixmap] = {}
-VEHICLE_BANNERS: Dict[str, QPixmap] = {}
 VEHICLES_ICONS: Dict[str, QPixmap] = {}
 ICONS: Dict[str, QPixmap] = {}
 
@@ -79,6 +77,7 @@ def load_icons():
         "./resources/ui/misc/" + get_theme_icons() + "/money_icon.png"
     )
     ICONS["Campaign Management"] = ICONS["Money"]
+    ICONS["Campaign Doctrine"] = QPixmap("./resources/ui/misc/blue-sam.png")
     ICONS["PassTurn"] = QPixmap(
         "./resources/ui/misc/" + get_theme_icons() + "/hourglass.png"
     )
@@ -184,6 +183,7 @@ def load_icons():
     )
 
     ICONS["heading"] = QPixmap("./resources/ui/misc/heading.png")
+    ICONS["blue-sam"] = QPixmap("./resources/ui/misc/blue-sam.png")
 
 
 EVENT_ICONS: Dict[str, QPixmap] = {}
@@ -204,13 +204,18 @@ def load_aircraft_icons():
                 os.path.join("./resources/ui/units/aircrafts/icons/", aircraft)
             )
     AIRCRAFT_ICONS["F-16C_50"] = AIRCRAFT_ICONS["F-16C"]
-    AIRCRAFT_ICONS["F-16A_MLU"] = AIRCRAFT_ICONS["F-16A"]
+    AIRCRAFT_ICONS["F-16A MLU"] = AIRCRAFT_ICONS["F-16A"]
     AIRCRAFT_ICONS["FA-18C_hornet"] = AIRCRAFT_ICONS["FA-18C"]
     AIRCRAFT_ICONS["A-10C_2"] = AIRCRAFT_ICONS["A-10C"]
     f1_refuel = ["Mirage-F1CT", "Mirage-F1EE", "Mirage-F1M-EE", "Mirage-F1EQ"]
     for f1 in f1_refuel:
         AIRCRAFT_ICONS[f1] = AIRCRAFT_ICONS["Mirage-F1C-200"]
     AIRCRAFT_ICONS["Mirage-F1M-CE"] = AIRCRAFT_ICONS["Mirage-F1CE"]
+    AIRCRAFT_ICONS["F-15ESE"] = AIRCRAFT_ICONS["F-15E"]
+    AIRCRAFT_ICONS["Su-30MKA-AG"] = AIRCRAFT_ICONS["Su-30MKA"]
+    AIRCRAFT_ICONS["Su-30MKI-AG"] = AIRCRAFT_ICONS["Su-30MKI"]
+    AIRCRAFT_ICONS["Su-30MKM-AG"] = AIRCRAFT_ICONS["Su-30MKM"]
+    AIRCRAFT_ICONS["Su-30SM-AG"] = AIRCRAFT_ICONS["Su-30SM"]
 
 
 def load_vehicle_icons():
@@ -219,46 +224,3 @@ def load_vehicle_icons():
             VEHICLES_ICONS[vehicle[:-7]] = QPixmap(
                 os.path.join("./resources/ui/units/vehicles/icons/", vehicle)
             )
-    VEHICLES_ICONS["(IDF Mods Project) BM-21 Grad 122mm"] = VEHICLES_ICONS["Grad-URAL"]
-
-
-def load_aircraft_banners():
-    for aircraft in os.listdir("./resources/ui/units/aircrafts/banners/"):
-        if aircraft.endswith(".jpg"):
-            AIRCRAFT_BANNERS[aircraft[:-7]] = QPixmap(
-                os.path.join("./resources/ui/units/aircrafts/banners/", aircraft)
-            )
-    _load_mirage_banners()
-    _load_su30mod_banners()
-
-
-def _load_mirage_banners():
-    variants = ["Mirage-F1CT", "Mirage-F1EE", "Mirage-F1M-EE", "Mirage-F1EQ"]
-    for f1 in variants:
-        AIRCRAFT_BANNERS[f1] = AIRCRAFT_BANNERS["Mirage-F1C-200"]
-    variants = ["Mirage-F1CE", "Mirage-F1M-CE"]
-    for f1 in variants:
-        AIRCRAFT_BANNERS[f1] = AIRCRAFT_BANNERS["Mirage-F1C"]
-
-
-def _load_su30mod_banners():
-    variants = ["Su-30MKA", "Su-30MKI", "Su-30MKM"]
-    for su30 in variants:
-        AIRCRAFT_BANNERS[su30] = AIRCRAFT_BANNERS["Su-30SM"]
-
-
-def load_vehicle_banners():
-    for aircraft in os.listdir("./resources/ui/units/vehicles/banners/"):
-        if aircraft.endswith(".jpg"):
-            VEHICLE_BANNERS[aircraft[:-7]] = QPixmap(
-                os.path.join("./resources/ui/units/vehicles/banners/", aircraft)
-            )
-    VEHICLE_BANNERS["(IDF Mods Project) BM-21 Grad 122mm"] = VEHICLE_BANNERS[
-        "Grad-URAL"
-    ]
-    VEHICLE_BANNERS["(IDF Mods Project) Urgan BM-27 220mm"] = VEHICLE_BANNERS[
-        "Uragan_BM-27"
-    ]
-    VEHICLE_BANNERS["(IDF Mods Project) 9A52 Smerch CM 300mm"] = VEHICLE_BANNERS[
-        "Smerch_HE"
-    ]

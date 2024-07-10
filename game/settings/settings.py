@@ -46,6 +46,9 @@ PILOTS_AND_SQUADRONS_SECTION = "Pilots and Squadrons"
 HQ_AUTOMATION_SECTION = "HQ Automation"
 FLIGHT_PLANNER_AUTOMATION = "Flight Planner Automation"
 
+CAMPAIGN_DOCTRINE_PAGE = "Campaign Doctrine"
+DOCTRINE_DISTANCES_SECTION = "Doctrine distances"
+
 MISSION_GENERATOR_PAGE = "Mission Generator"
 
 GAMEPLAY_SECTION = "Gameplay"
@@ -153,7 +156,6 @@ class Settings:
         MISSION_RESTRICTIONS_SECTION,
         default=True,
     )
-
     easy_communication: Optional[bool] = choices_option(
         "Easy Communication",
         page=DIFFICULTY_PAGE,
@@ -189,9 +191,220 @@ class Settings:
         default=False,
         detail=(
             "If checked, squadrons with a primary task matching the mission will be "
-            "preferred even if there is a closer squadron capable of the mission as a"
+            "preferred even if there is a closer squadron capable of the mission as a "
             "secondary task. Expect longer flights, but squadrons will be more often "
             "assigned to their primary task."
+        ),
+    )
+    # CAMPAIGN DOCTRINE
+    autoplan_tankers_for_strike: bool = boolean_option(
+        "Auto-planner plans refueling flights for Strike packages",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=True,
+        invert=False,
+        detail=(
+            "If checked, the auto-planner will include tankers in Strike packages, "
+            "provided the faction has access to them."
+        ),
+    )
+    autoplan_tankers_for_oca: bool = boolean_option(
+        "Auto-planner plans refueling flights for OCA packages",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=True,
+        invert=False,
+        detail=(
+            "If checked, the auto-planner will include tankers in OCA packages, "
+            "provided the faction has access to them."
+        ),
+    )
+    autoplan_tankers_for_dead: bool = boolean_option(
+        "Auto-planner plans refueling flights for DEAD packages",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=True,
+        invert=False,
+        detail=(
+            "If checked, the auto-planner will include tankers in DEAD packages, "
+            "provided the faction has access to them."
+        ),
+    )
+    oca_target_autoplanner_min_aircraft_count: int = bounded_int_option(
+        "Minimum number of aircraft (at vulnerable airfields) for auto-planner to plan OCA packages against",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=20,
+        min=0,
+        max=100,
+        detail=(
+            "How many aircraft there has to be at an airfield for "
+            "the auto-planner to plan an OCA strike against it."
+        ),
+    )
+    opfor_autoplanner_aggressiveness: int = bounded_int_option(
+        "OPFOR auto-planner aggressiveness (%)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=20,
+        min=0,
+        max=100,
+        detail=(
+            "Chance (larger number -> higher chance) that the OPFOR AI "
+            "auto-planner will take risks and plan flights against targets "
+            "within threatened airspace."
+        ),
+    )
+    heli_combat_alt_agl: int = bounded_int_option(
+        "Helicopter combat altitude (feet AGL)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=200,
+        min=1,
+        max=10000,
+        detail=(
+            "Altitude for helicopters in feet AGL while flying between combat waypoints."
+            " Combat waypoints are considered INGRESS, CAS, TGT, EGRESS & SPLIT."
+            " In campaigns in more mountainous areas, you might want to increase this "
+            "setting to avoid the AI flying into the terrain."
+        ),
+    )
+    heli_cruise_alt_agl: int = bounded_int_option(
+        "Helicopter cruise altitude (feet AGL)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=500,
+        min=1,
+        max=10000,
+        detail=(
+            "Altitude for helicopters in feet AGL while flying between non-combat waypoints."
+            " In campaigns in more mountainous areas, you might want to increase this "
+            "setting to avoid the AI flying into the terrain."
+        ),
+    )
+    atflir_autoswap: bool = boolean_option(
+        "Auto-swap ATFLIR to LITENING",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=True,
+        detail=(
+            "Automatically swaps ATFLIR to LITENING pod for newly generated land-based F/A-18 flights "
+            "without having to change the payload. <u>Takes effect after current turn!</u>"
+        ),
+    )
+    ai_jettison_empty_tanks: bool = boolean_option(
+        "Enable AI empty fuel tank jettison",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=False,
+        detail="AI will jettison their fuel tanks as soon as they're empty.",
+    )
+    max_plane_altitude_offset: int = bounded_int_option(
+        "Maximum randomized altitude offset (x1000 ft) for airplanes.",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        min=0,
+        max=5,
+        default=2,
+        detail="Creates a randomized altitude offset for airplanes.",
+    )
+    # Doctrine Distances Section
+    airbase_threat_range: int = bounded_int_option(
+        "Airbase threat range (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=100,
+        min=0,
+        max=300,
+        detail=(
+            "Will impact both defensive (BARCAP) and offensive flights. Also has a performance impact, "
+            "lower threat range generally means less BARCAPs are planned."
+        ),
+    )
+    cas_engagement_range_distance: int = bounded_int_option(
+        "CAS engagement range (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=10,
+        min=0,
+        max=100,
+    )
+    sead_sweep_engagement_range_distance: int = bounded_int_option(
+        "SEAD Sweep engagement range (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=30,
+        min=0,
+        max=100,
+    )
+    sead_threat_buffer_min_distance: int = bounded_int_option(
+        "SEAD Escort/Sweep threat buffer distance (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=5,
+        min=0,
+        max=100,
+        detail=(
+            "How close to known threats will the SEAD Escort / SEAD Sweep engagement zone extend."
+        ),
+    )
+    tarcap_threat_buffer_min_distance: int = bounded_int_option(
+        "TARCAP threat buffer distance (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=20,
+        min=0,
+        max=100,
+        detail=("How close to known threats will the TARCAP racetrack extend."),
+    )
+    aewc_threat_buffer_min_distance: int = bounded_int_option(
+        "AEW&C threat buffer distance (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=80,
+        min=0,
+        max=300,
+        detail=(
+            "How far, at minimum, will AEW&C racetracks be planned "
+            "to known threat zones."
+        ),
+    )
+    tanker_threat_buffer_min_distance: int = bounded_int_option(
+        "Theater tanker threat buffer distance (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=70,
+        min=0,
+        max=300,
+        detail=(
+            "How far, at minimum, will theater tanker racetracks be "
+            "planned to known threat zones."
+        ),
+    )
+    max_mission_range_planes: int = bounded_int_option(
+        "Auto-planner maximum mission range for airplanes (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=150,
+        min=150,
+        max=1000,
+        detail=(
+            "The maximum mission distance that's used by the auto-planner for airplanes. "
+            "This setting won't take effect when a larger "
+            "range is defined in the airplane's yaml specification."
+        ),
+    )
+    max_mission_range_helicopters: int = bounded_int_option(
+        "Auto-planner maximum mission range for helicopters (NM)",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=DOCTRINE_DISTANCES_SECTION,
+        default=100,
+        min=50,
+        max=1000,
+        detail=(
+            "The maximum mission distance that's used by the auto-planner for helicopters. "
+            "This setting won't take effect when a larger "
+            "range is defined in the helicopter's yaml specification."
         ),
     )
     # Pilots and Squadrons
@@ -214,7 +427,7 @@ class Settings:
         default=True,
         detail=(
             "If set, squadrons will be limited to a maximum number of pilots and dead "
-            "pilots will replenish at a fixed rate, each defined with the settings"
+            "pilots will replenish at a fixed rate, each defined with the settings "
             "below. Auto-purchase may buy aircraft for which there are no pilots"
             "available, so this feature is still a work-in-progress."
         ),
@@ -227,7 +440,7 @@ class Settings:
         "Maximum number of pilots per squadron",
         CAMPAIGN_MANAGEMENT_PAGE,
         PILOTS_AND_SQUADRONS_SECTION,
-        default=12,
+        default=16,
         min=6,
         max=72,
         detail=(
@@ -292,6 +505,18 @@ class Settings:
             "auto-planning disables auto-purchase."
         ),
     )
+    auto_ato_behavior_awacs: bool = boolean_option(
+        "Automatic AWACS package planning",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        default=True,
+    )
+    auto_ato_behavior_tankers: bool = boolean_option(
+        "Automatic Theater tanker package planning",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        default=False,
+    )
     auto_ato_player_missions_asap: bool = boolean_option(
         "Automatically generated packages with players are scheduled ASAP",
         CAMPAIGN_MANAGEMENT_PAGE,
@@ -305,7 +530,7 @@ class Settings:
         default=True,
     )
     auto_procurement_balance: int = bounded_int_option(
-        "AI ground unit procurement budget ratio (%)",
+        "AI ground unit procurement budget ratio (%) for OWNFOR",
         CAMPAIGN_MANAGEMENT_PAGE,
         HQ_AUTOMATION_SECTION,
         min=0,
@@ -318,7 +543,7 @@ class Settings:
         ),
     )
     frontline_reserves_factor: int = bounded_int_option(
-        "AI ground unit front-line reserves factor (%)",
+        "AI ground unit front-line reserves factor (%) for OWNFOR",
         CAMPAIGN_MANAGEMENT_PAGE,
         HQ_AUTOMATION_SECTION,
         min=0,
@@ -330,14 +555,50 @@ class Settings:
         ),
     )
     reserves_procurement_target: int = bounded_int_option(
-        "AI ground unit reserves procurement target",
+        "AI ground unit reserves procurement target for OWNFOR",
         CAMPAIGN_MANAGEMENT_PAGE,
         HQ_AUTOMATION_SECTION,
         min=0,
         max=1000,
         default=10,
         detail=(
-            "The number of units that will be bought as reserves for applicable control points"
+            "The number of units that will be bought as reserves for applicable control points."
+        ),
+    )
+    auto_procurement_balance_red: int = bounded_int_option(
+        "AI ground unit procurement budget ratio (%) for OPFOR",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        min=0,
+        max=100,
+        default=50,
+        detail=(
+            "Ratio (larger number -> more budget for ground units) "
+            "that indicates how the AI procurement planner should "
+            "spend its budget."
+        ),
+    )
+    frontline_reserves_factor_red: int = bounded_int_option(
+        "AI ground unit front-line reserves factor (%) for OPFOR",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        min=0,
+        max=1000,
+        default=130,
+        detail=(
+            "Factor to be multiplied with the control point's unit count limit "
+            "to calculate the procurement target for reserve troops at front-lines."
+        ),
+    )
+    reserves_procurement_target_red: int = bounded_int_option(
+        "AI ground unit reserves procurement target for OPFOR",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        min=0,
+        max=1000,
+        default=10,
+        detail=(
+            "The number of units that will be bought as reserves for applicable control points."
         ),
     )
 
@@ -364,7 +625,7 @@ class Settings:
         default=35,
         min=0,
         max=100,
-        detail="See 2-ship weight factor (WF2)",
+        detail="See 2-ship weight factor (WF3)",
     )
     fpa_4ship_weight: int = bounded_int_option(
         "4-ship weight factor (WF4)",
@@ -373,7 +634,7 @@ class Settings:
         default=15,
         min=0,
         max=100,
-        detail="See 2-ship weight factor (WF2)",
+        detail="See 2-ship weight factor (WF4)",
     )
 
     # Mission Generator
@@ -391,7 +652,7 @@ class Settings:
         "Player missions interrupt fast forward",
         page=MISSION_GENERATOR_PAGE,
         section=GAMEPLAY_SECTION,
-        default=None,
+        default=StartType.COLD,
         choices={
             "Never": None,
             "At startup time": StartType.COLD,
@@ -456,14 +717,14 @@ class Settings:
             "option only allows the player to wait on the ground.</strong>"
         ),
     )
-    atflir_autoswap: bool = boolean_option(
-        "Auto-swap ATFLIR to LITENING",
-        MISSION_GENERATOR_PAGE,
-        GAMEPLAY_SECTION,
-        default=True,
+    untasked_opfor_client_slots: bool = boolean_option(
+        "Convert untasked OPFOR aircraft into client slots",
+        page=MISSION_GENERATOR_PAGE,
+        section=GAMEPLAY_SECTION,
+        default=False,
         detail=(
-            "Automatically swaps ATFLIR to LITENING pod for newly generated land-based F-18 flights "
-            "without having to change the payload. <u>Takes effect after current turn!</u>"
+            "Warning: Enabling this will significantly reduce the number of "
+            "targets available for OCA/Aircraft missions."
         ),
     )
     default_start_type: StartType = choices_option(
@@ -476,6 +737,24 @@ class Settings:
             "Warning: Options other than Cold will significantly reduce the number of "
             "targets available for OCA/Aircraft missions, and OCA/Aircraft flights "
             "will not be included in automatically planned OCA packages."
+        ),
+    )
+    default_start_type_client: StartType = choices_option(
+        "Default start type for Player flights",
+        page=MISSION_GENERATOR_PAGE,
+        section=GAMEPLAY_SECTION,
+        choices={v.value: v for v in StartType},
+        default=StartType.COLD,
+        detail=("Default start type for flights containing Player/Client slots."),
+    )
+    nevatim_parking_fix: bool = boolean_option(
+        "Force air-starts for aircraft at Nevatim and Ramon Airbase inoperable parking slots",
+        page=MISSION_GENERATOR_PAGE,
+        section=GAMEPLAY_SECTION,
+        default=True,  # TODO: set to False or remove this when DCS is fixed
+        detail=(
+            "Air-starts forced for all aircraft at Nevatim and Ramon Airbase except parking slots "
+            "which are known to work as of DCS World 2.9.4.53990."
         ),
     )
     # Mission specific
@@ -496,26 +775,13 @@ class Settings:
         max=150,
     )
     # Mission specific
-    max_frontline_length: int = bounded_int_option(
-        "Maximum frontline length (km)",
+    max_frontline_width: int = bounded_int_option(
+        "Maximum frontline width (km)",
         page=MISSION_GENERATOR_PAGE,
         section=GAMEPLAY_SECTION,
         default=80,
         min=1,
         max=100,
-    )
-    opfor_autoplanner_aggressiveness: int = bounded_int_option(
-        "OPFOR autoplanner aggressiveness (%)",
-        page=MISSION_GENERATOR_PAGE,
-        section=GAMEPLAY_SECTION,
-        default=20,
-        min=0,
-        max=100,
-        detail=(
-            "Chance (larger number -> higher chance) that the OPFOR AI "
-            "autoplanner will take risks and plan flights against targets "
-            "within threatened airspace."
-        ),
     )
     game_masters_count: int = bounded_int_option(
         "Number of game masters",
@@ -563,6 +829,68 @@ class Settings:
         detail=(
             "The number of observers slots to generate for each side. "
             'Use this to allow spectators when disabling "Allow external views".'
+        ),
+    )
+    ground_start_ai_planes: bool = boolean_option(
+        "AI fixed-wing aircraft can use roadbases / bases with only ground spawns",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=False,
+        detail=(
+            "If enabled, AI can use roadbases or airbases which only have ground spawns. "
+            "AI will always air-start from these bases (due to DCS limitation)."
+        ),
+    )
+    ground_start_scenery_remove_triggers: bool = boolean_option(
+        "Generate SCENERY REMOVE OBJECTS ZONE triggers at roadbase first waypoints",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=True,
+        detail=(
+            "Can be used to remove lightposts and other obstacles from roadbase runways. "
+            "Might not work in DCS multiplayer."
+        ),
+    )
+    ground_start_trucks: bool = boolean_option(
+        "Spawn trucks at ground spawns in airbases instead of FARP statics",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=False,
+        detail=("Might have a negative performance impact."),
+    )
+    ground_start_trucks_roadbase: bool = boolean_option(
+        "Spawn trucks at ground spawns in roadbases instead of FARP statics",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=False,
+        detail=("Might have a negative performance impact."),
+    )
+    ground_start_ground_power_trucks: bool = boolean_option(
+        "Spawn ground power trucks at ground starts in airbases",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=True,
+        detail=(
+            "Needed to cold-start some aircraft types. Might have a performance impact."
+        ),
+    )
+    ground_start_ground_power_trucks_roadbase: bool = boolean_option(
+        "Spawn ground power trucks at ground starts in roadbases",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=True,
+        detail=(
+            "Needed to cold-start some aircraft types. Might have a performance impact."
+        ),
+    )
+    ai_unlimited_fuel: bool = boolean_option(
+        "AI flights have unlimited fuel",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=True,
+        detail=(
+            "AI aircraft have unlimited fuel applied at start, removed at join/racetrack start,"
+            " and reapplied at split/racetrack end for applicable flights. "
         ),
     )
 
@@ -621,6 +949,12 @@ class Settings:
         section=PERFORMANCE_SECTION,
         default=False,
     )
+    perf_disable_cargo_ships: bool = boolean_option(
+        "Disable shipping-convoys",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=False,
+    )
     perf_frontline_units_prefer_roads: bool = boolean_option(
         "Front line troops prefer roads",
         page=MISSION_GENERATOR_PAGE,
@@ -648,8 +982,14 @@ class Settings:
         section=PERFORMANCE_SECTION,
         default=True,
     )
-    perf_disable_idle_aircraft: bool = boolean_option(
-        "Disable idle aircraft at airfields",
+    perf_disable_untasked_blufor_aircraft: bool = boolean_option(
+        "Disable untasked OWNFOR aircraft at airfields",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=False,
+    )
+    perf_disable_untasked_opfor_aircraft: bool = boolean_option(
+        "Disable untasked OPFOR aircraft at airfields",
         page=MISSION_GENERATOR_PAGE,
         section=PERFORMANCE_SECTION,
         default=False,
@@ -683,13 +1023,25 @@ class Settings:
         default=True,
         causes_expensive_game_update=True,
     )
+    perf_ai_despawn_airstarted: bool = boolean_option(
+        "De-spawn AI in the air upon RTB",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=False,
+        detail=(
+            "If enabled, AI flights will de-spawn over their base "
+            "if the start-up type was manually changed to 'In-Flight'."
+        ),
+    )
 
     # Cheating. Not using auto settings because the same page also has buttons which do
     # not alter settings.
-    show_red_ato: bool = False
     enable_frontline_cheats: bool = False
     enable_base_capture_cheat: bool = False
     enable_transfer_cheat: bool = False
+    enable_runway_state_cheat: bool = False
+    enable_air_wing_adjustments: bool = False
+    enable_enemy_buy_sell: bool = False
 
     # LUA Plugins system
     plugins: Dict[str, bool] = field(default_factory=dict)

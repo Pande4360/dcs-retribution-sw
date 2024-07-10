@@ -1,0 +1,376 @@
+---
+name: Syria - WRL - Battle For Syria North (v1.2) #1.2 Complete Mission Overhaul - Frontlines Removed - CTLD or C130s are expected for base capture / Consider victory by destroying all airbases.
+theater: Syria
+authors: HolyOrangeJuice
+description: "<p>This mission was heavily modified by HolyOrangeJuice [OscarJuliet] for the WRL Group. Original Mission by Sith1144. Join us for weekly PVE events. <a style=\"color: white\" href=\"https://werunliberation.com\">werunliberation.com</a></p><p>This modification of the mission is not meant to represent historical accuracy. An exciting battle on the Northern part of the Syria map.</p><p>All WRL Campaigns use high budget and high income to focus on the PVE goals to eliminate the enemy. Use lower starting money and income for increased difficulty</p>"
+recommended_player_faction: WRL - Task Force Blue
+recommended_enemy_faction: WRL - Task Force Red
+recommended_start_date: 2019-06-04
+miz: WRL_Battle4SyriaNorth.miz
+performance: 2
+version: "10.7" #CTLD ZONES ADDED
+recommended_player_money: 5000
+recommended_enemy_money: 2000
+recommended_player_income_multiplier: 5.0
+recommended_enemy_income_multiplier: 1.0
+advanced_iads: true 
+iads_config:
+# NATO IADS
+    - NATO EWR-1:
+        - NATO IADS Command
+    - NATO EWR:
+        - NATO IADS Command
+    - NATO SAM:
+        - NATO IADS Command
+    - NATO SAM-1:
+        - NATO IADS Command
+    - NATO SAM-2:
+        - NATO IADS Command
+    - NATO SAM-3:
+        - NATO IADS Command
+    - NATO SAM-4:
+        - NATO IADS Command
+    - NATO SAM-5:
+        - NATO IADS Command
+    - NATO SAM-6:
+        - NATO IADS Command
+    - NATO SAM-7:
+        - NATO IADS Command
+#BLUE DEFENSE AREA - HINT: Go after the power stations
+    - B-COMMAND-1:
+        - B-POWER-1
+        - B-TOWER-1
+        - B-POWER-2
+        - B-TOWER-2
+    - B-SAM-1:
+        - B-POWER-1
+        - B-TOWER-1
+    - B-SAM-2:
+        - B-POWER-1
+        - B-TOWER-1
+    - B-SAM-3:
+        - B-POWER-1
+        - B-TOWER-1  
+    - B-SAM-4: 
+        - B-POWER-2
+        - B-TOWER-2
+    - B-SAM-5: #SA10
+        - B-POWER-2
+        - B-TOWER-2      
+    - B-EWR-1:
+        - B-POWER-1
+        - B-TOWER-1     
+    - B-EWR-2:
+        - B-POWER-1
+        - B-TOWER-1    
+#RED DEFENSE AREA - HINT: Go after the power stations
+    - R-COMMAND-1:
+        - R-POWER-1
+        - R-TOWER-1
+        - R-POWER-2
+        - R-TOWER-2
+    - R-SAM-1:
+        - R-POWER-1
+        - R-TOWER-1
+    - R-SAM-2:
+        - R-POWER-1
+        - R-TOWER-1
+    - R-SAM-3:
+        - R-POWER-1
+        - R-TOWER-1  
+    - R-SAM-4: 
+        - R-POWER-1
+        - R-TOWER-1
+    - R-SAM-5: 
+        - R-POWER-1
+        - R-TOWER-1     
+    - R-SAM-6:
+        - R-POWER-1
+        - R-TOWER-1     
+    - R-SAM-7:
+        - R-POWER-1
+        - R-TOWER-1    
+    - R-SAM-8:
+        - R-POWER-2
+        - R-TOWER-2
+    - R-SAM-9: #SA-10
+        - R-POWER-2
+        - R-TOWER-2    
+#YELLOW DEFNESE AREA - HINT: Go after the command bunkers
+    - Y-COMMAND-1:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3
+    - Y-COMMAND-2:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3
+    - Y-SAM-1:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+    - Y-SAM-2:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+    - Y-SAM-3:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+    - Y-SAM-4: 
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2
+    - Y-SAM-5: 
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2    
+    - Y-SAM-6:
+        - Y-POWER-1
+        - Y-TOWER-1
+        - Y-POWER-2
+        - Y-TOWER-2    
+    - Y-SAM-7:
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3       
+    - Y-SAM-8:
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3
+    - Y-SAM-9:
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3  
+    - Y-SAM-10:
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3  
+    - Y-SAM-11: #SA-5
+        - Y-POWER-2
+        - Y-TOWER-2
+        - Y-TOWER-3         
+squadrons:
+    #Incirlik
+    16:
+    - primary: AEW&C
+      aircraft:
+        - E-3A
+      size: 2
+    - primary: Refueling
+      aircraft:
+        - KC-135 Stratotanker
+      size: 2
+    - primary: Refueling
+      aircraft:
+        - KC-130
+      size: 2
+    - primary: Strike
+      secondary: air-to-ground
+      aircraft:
+        - B-52H Stratofortress
+      size: 2
+    - primary: Strike
+      secondary: any
+      aircraft:
+        - B-1B Lancer
+      size: 2
+    - primary: BAI
+      secondary: any
+      aircraft:
+        - F-117A Nighthawk
+      size: 5
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - F-15E Strike Eagle (Suite 4+)
+      size: 16      
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - AJS-37 Viggen
+      size: 8  
+    - primary: BAI
+      secondary: any
+      aircraft:
+        - JF-17 Thunder
+      size: 8
+    - primary: BARCAP
+      secondary: any
+      aircraft:
+        - Mirage 2000C
+      size: 8
+    - primary: CAS
+      secondary: air-to-ground
+      aircraft:
+        - A-10C Thunderbolt II (Suite 7)
+      size: 8
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - AV-8B Harrier II Night Attack
+      size: 8
+    - primary: SEAD
+      secondary: air-to-ground
+      aircraft:
+        - VMFA-251 #Hornet - Marines
+      size: 16
+    - primary: Strike
+      secondary: any
+      aircraft:
+        - 23rd FS #Viper USAF
+      size: 16
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - 58th FS #F15c
+      size: 16
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - A Company, 1-211th ARB #AH-64D Apache Longbow
+      size: 8       
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - Mi-24P Hind-F
+      size: 8
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - Ka-50 Hokum III
+      size: 8
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - SA 342M Gazelle
+      size: 4
+    - primary: Transport
+      secondary: any
+      aircraft:
+        - HMLA-169 (UH-1H) #UH-1H Iroquois
+      size: 4
+    - primary: Transport
+      secondary: any
+      aircraft:
+        - Mi-8MTV2 Hip
+      size: 4
+#NATO CARRIERS
+    NATO CVN:
+    - primary: BARCAP
+      secondary: any
+      aircraft:
+        - VF-142 #F14B
+      size: 16
+    - primary: Strike
+      secondary: any
+      aircraft:
+        - VFA-192 #Hornet Navy
+      size: 16
+    - primary: AEW&C
+      aircraft:
+        - VAW-125 #E2C
+      size: 2
+    - primary: Refueling
+      aircraft:
+        - S-3B Tanker
+      size: 2
+    - primary: Strike
+      secondary: any
+      aircraft:
+        - S-3B Viking
+      size: 4
+    NATO LHA:
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - AV-8B Harrier II Night Attack
+    #Abu Al-Duhur
+    1:       
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - Su-34 Fullback 
+      size: 12     
+    #Hatay
+    15:
+    - primary: BAI
+      secondary: air-to-ground
+      aircraft:
+        - Su-24M Fencer-D 
+      size: 12
+    #Minakh
+    26:
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - MiG-21bis Fishbed-N
+      size: 12
+    #Aleppo
+    27:
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - MiG-23MLD Flogger-K
+      size: 12
+    #Jirah
+    17:
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - MiG-23MLD Flogger-K
+      size: 12
+    #Gaziantep
+    11:
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - MiG-21bis Fishbed-N
+      size: 12
+    #Kuweires
+    31:      
+    - primary: BARCAP
+      secondary: air-to-air
+      aircraft:
+        - MiG-29S Fulcrum-C
+      size: 12  
+ground_forces:
+  NATO SAM: Hawk
+  NATO SAM-1: Hawk
+  NATO SAM-2: Hawk
+  NATO SAM-3: Hawk
+  NATO SAM-4: Hawk
+  B-SAM-1: SA-2/S-75
+  B-SAM-2: SA-11
+  B-SAM-3: SA-2/S-75
+  B-SAM-4: SA-2/S-75
+  B-SAM-5: SA-10/S-300PS
+  R-SAM-1: SA-2/S-75
+  R-SAM-2: SA-2/S-75
+  R-SAM-3: SA-11
+  R-SAM-4: SA-11
+  R-SAM-5: SA-6
+  R-SAM-6: SA-3/S-125
+  R-SAM-7: SA-6
+  R-SAM-8: SA-11
+  R-SAM-9: SA-10/S-300PS
+  Y-SAM-1: SA-6
+  Y-SAM-2: SA-3/S-125
+  Y-SAM-3: SA-6
+  Y-SAM-4: SA-3/S-125
+  Y-SAM-5: SA-6
+  Y-SAM-6: SA-3/S-125
+  Y-SAM-7: SA-11
+  Y-SAM-8: SA-2/S-75
+  Y-SAM-9: SA-2/S-75
+  Y-SAM-10: SA-2/S-75
+  Y-SAM-11: SA-10/S-300PS 

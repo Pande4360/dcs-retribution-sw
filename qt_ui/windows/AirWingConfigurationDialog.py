@@ -1,19 +1,18 @@
-import logging
 from collections import defaultdict
-from typing import Iterable, Iterator, Optional
+from typing import Iterable, Iterator, Optional, Any
 
-from PySide2.QtCore import (
+import yaml
+from PySide6.QtCore import (
     QItemSelection,
     QItemSelectionModel,
     QSize,
     Qt,
     Signal,
 )
-from PySide2.QtGui import QIcon, QStandardItem, QStandardItemModel
-from PySide2.QtWidgets import (
+from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -30,18 +29,25 @@ from PySide2.QtWidgets import (
     QToolButton,
     QMessageBox,
     QSpinBox,
+    QGroupBox,
+    QFileDialog,
 )
+from dcs.mapping import Point
 
 from game import Game
 from game.ato.flighttype import FlightType
-from game.campaignloader.campaignairwingconfig import DEFAULT_SQUADRON_SIZE
+from game.campaignloader.campaignairwingconfig import (
+    DEFAULT_SQUADRON_SIZE,
+    CampaignAirWingConfig,
+)
 from game.coalition import Coalition
 from game.dcs.aircrafttype import AircraftType
+from game.persistency import airwing_dir
 from game.squadrons import AirWing, Pilot, Squadron
 from game.squadrons.squadrondef import SquadronDef
-from game.theater import ControlPoint
-from game.theater.start_generator import GeneratorSettings
+from game.theater import ControlPoint, ParkingType
 from qt_ui.uiconstants import AIRCRAFT_ICONS, ICONS
+from qt_ui.widgets.combos.QSquadronLiverySelector import SquadronLiverySelector
 from qt_ui.widgets.combos.primarytaskselector import PrimaryTaskSelector
 
 
@@ -109,7 +115,7 @@ class SquadronBaseSelector(QComboBox):
         aircraft_type: Optional[AircraftType],
     ) -> None:
         super().__init__()
-        self.setSizeAdjustPolicy(self.AdjustToContents)
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.bases = list(bases)
         self.set_aircraft_type(aircraft_type)
 
@@ -130,46 +136,6 @@ class SquadronBaseSelector(QComboBox):
             self.addItem("Select aircraft type first", None)
             self.setEnabled(False)
         self.update()
-
-
-class SquadronLiverySelector(QComboBox):
-    """
-    A combo box for selecting a squadron's livery.
-    The combo box will automatically be populated with all available liveries.
-    """
-
-    def __init__(self, squadron: Squadron) -> None:
-        super().__init__()
-        self.setSizeAdjustPolicy(self.AdjustToContents)
-
-        self.aircraft_type = squadron.aircraft
-        selected_livery = squadron.livery
-
-        liveries = set()
-        cc = squadron.coalition.faction.country.shortname
-        aircraft_liveries = set(self.aircraft_type.dcs_unit_type.iter_liveries())
-        if len(aircraft_liveries) == 0:
-            logging.info(f"Liveries for {self.aircraft_type} is empty!")
-        for livery in aircraft_liveries:
-            valid_livery = livery.countries is None or cc in livery.countries
-            if valid_livery or cc in ["BLUE", "RED"]:
-                liveries.add(livery)
-        faction = squadron.coalition.faction
-        overrides = [
-            x
-            for x in faction.liveries_overrides.get(self.aircraft_type, [])
-            if x in [y.id.lower() for y in liveries]
-        ]
-        if len(overrides) > 0:
-            self.addItem("Use livery overrides", userData=None)
-        for livery in sorted(liveries):
-            self.addItem(livery.name, userData=livery.id)
-            if selected_livery is not None:
-                if selected_livery.lower() == livery.id:
-                    self.setCurrentText(livery.name)
-        if len(liveries) == 0:
-            self.addItem("No available liveries (using DCS default)")
-            self.setEnabled(False)
 
 
 class SquadronSizeSpinner(QSpinBox):
@@ -236,14 +202,14 @@ class SquadronConfigurationBox(QGroupBox):
         coalition: Coalition,
         squadron: Squadron,
         parking_tracker: AirWingConfigParkingTracker,
-        gen_settings: GeneratorSettings,
+        aircraft_present: bool,
     ) -> None:
         super().__init__()
         self.game = game
         self.coalition = coalition
         self.squadron = squadron
         self.parking_tracker = parking_tracker
-        self.gen_settings = gen_settings
+        self.aircraft_present = aircraft_present
 
         columns = QHBoxLayout()
         self.setLayout(columns)
@@ -263,12 +229,16 @@ class SquadronConfigurationBox(QGroupBox):
 
         nickname_edit_layout.addWidget(QLabel("Nickname:"), 0, 0, 1, 2)
         self.nickname_edit = QLineEdit(squadron.nickname)
-        nickname_edit_layout.addWidget(self.nickname_edit, 1, 0, Qt.AlignTop)
+        nickname_edit_layout.addWidget(
+            self.nickname_edit, 1, 0, Qt.AlignmentFlag.AlignTop
+        )
         reroll_nickname_button = QToolButton()
         reroll_nickname_button.setIcon(QIcon(ICONS["Reload"]))
         reroll_nickname_button.setToolTip("Re-roll nickname")
         reroll_nickname_button.clicked.connect(self.reroll_nickname)
-        nickname_edit_layout.addWidget(reroll_nickname_button, 1, 1, Qt.AlignTop)
+        nickname_edit_layout.addWidget(
+            reroll_nickname_button, 1, 1, Qt.AlignmentFlag.AlignTop
+        )
 
         left_column.addWidget(QLabel("Livery:"))
         self.livery_selector = SquadronLiverySelector(squadron)
@@ -349,6 +319,8 @@ class SquadronConfigurationBox(QGroupBox):
             self.name_edit.setText(self.squadron.name)
             self.nickname_edit.setText(self.squadron.nickname)
             self.primary_task_selector.setCurrentText(self.squadron.primary_task.value)
+            index = self.livery_selector.findText(self.squadron.livery)
+            self.livery_selector.setCurrentIndex(index)
             self.max_size_selector.setValue(self.squadron.max_size)
             self.base_selector.setCurrentText(self.squadron.location.name)
             self.player_list.setText(
@@ -362,10 +334,14 @@ class SquadronConfigurationBox(QGroupBox):
         required_slots = self.parking_tracker.used_parking_at(self.squadron.location)
         required_slots_string = (
             f"Parking slots required: {required_slots}<br/>"
-            if self.gen_settings.squadrons_start_full
+            if self.aircraft_present
             else ""
         )
-        total_slots = self.squadron.location.total_aircraft_parking
+        total_slots = self.squadron.location.total_aircraft_parking(
+            ParkingType().from_aircraft(
+                self.squadron.aircraft, self.game.settings.ground_start_ai_planes
+            )
+        )
         slots = "N/A"
         if ap := self.squadron.location.dcs_airport:
             slots = len(ap.free_parking_slots(self.squadron.aircraft.dcs_unit_type))
@@ -393,7 +369,7 @@ class SquadronConfigurationBox(QGroupBox):
             self.squadron.aircraft,
             self.coalition.air_wing.squadron_defs,
         )
-        if popup.exec_() != QDialog.Accepted:
+        if popup.exec_() != QDialog.DialogCode.Accepted:
             return None
 
         selected_def = popup.squadron_def_selector.currentData()
@@ -434,7 +410,9 @@ class SquadronConfigurationBox(QGroupBox):
             # The user canceled the dialog.
             return
         self.return_players_to_squadron()
+        self.parking_tracker.remove_squadron(self.squadron)
         self.squadron = new_squadron
+        self.parking_tracker.add_squadron(self.squadron)
         self.bind_data()
         self.mission_types.replace_squadron(self.squadron)
         self.parking_tracker.signal_change()
@@ -478,14 +456,14 @@ class SquadronConfigurationLayout(QVBoxLayout):
         coalition: Coalition,
         squadrons: list[Squadron],
         parking_tracker: AirWingConfigParkingTracker,
-        gen_settings: GeneratorSettings,
+        aircraft_present: bool,
     ) -> None:
         super().__init__()
         self.game = game
         self.coalition = coalition
         self.squadron_configs = []
         self.parking_tracker = parking_tracker
-        self.gen_settings = gen_settings
+        self.aircraft_present = aircraft_present
         for squadron in squadrons:
             self.add_squadron(squadron)
 
@@ -508,7 +486,11 @@ class SquadronConfigurationLayout(QVBoxLayout):
 
     def add_squadron(self, squadron: Squadron) -> None:
         squadron_config = SquadronConfigurationBox(
-            self.game, self.coalition, squadron, self.parking_tracker, self.gen_settings
+            self.game,
+            self.coalition,
+            squadron,
+            self.parking_tracker,
+            self.aircraft_present,
         )
         squadron_config.remove_squadron_signal.connect(self.remove_squadron)
         self.squadron_configs.append(squadron_config)
@@ -525,14 +507,14 @@ class AircraftSquadronsPage(QWidget):
         coalition: Coalition,
         squadrons: list[Squadron],
         parking_tracker: AirWingConfigParkingTracker,
-        gen_settings: GeneratorSettings,
+        aircraft_present: bool,
     ) -> None:
         super().__init__()
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         self.squadrons_config = SquadronConfigurationLayout(
-            game, coalition, squadrons, parking_tracker, gen_settings
+            game, coalition, squadrons, parking_tracker, aircraft_present
         )
         self.squadrons_config.config_changed.connect(self.on_squadron_config_changed)
 
@@ -540,8 +522,9 @@ class AircraftSquadronsPage(QWidget):
         scrolling_widget.setLayout(self.squadrons_config)
 
         scrolling_area = QScrollArea()
-        scrolling_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scrolling_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scrolling_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         scrolling_area.setWidgetResizable(True)
         scrolling_area.setWidget(scrolling_widget)
 
@@ -566,14 +549,14 @@ class AircraftSquadronsPanel(QStackedLayout):
         game: Game,
         coalition: Coalition,
         parking_tracker: AirWingConfigParkingTracker,
-        gen_settings: GeneratorSettings,
+        aircraft_present: bool,
     ) -> None:
         super().__init__()
         self.game = game
         self.coalition = coalition
         self.parking_tracker = parking_tracker
         self.squadrons_pages: dict[AircraftType, AircraftSquadronsPage] = {}
-        self.gen_settings = gen_settings
+        self.aircraft_present = aircraft_present
         for aircraft, squadrons in self.air_wing.squadrons.items():
             self.new_page_for_type(aircraft, squadrons)
 
@@ -597,7 +580,7 @@ class AircraftSquadronsPanel(QStackedLayout):
             self.coalition,
             squadrons,
             self.parking_tracker,
-            self.gen_settings,
+            self.aircraft_present,
         )
         page.remove_squadron_page.connect(self.remove_page_for_type)
         self.addWidget(page)
@@ -640,19 +623,19 @@ class AircraftTypeList(QListView):
         self.setModel(self.item_model)
 
         self.selectionModel().setCurrentIndex(
-            self.item_model.index(0, 0), QItemSelectionModel.Select
+            self.item_model.index(0, 0), QItemSelectionModel.SelectionFlag.Select
         )
         self.selectionModel().selectionChanged.connect(self.on_selection_changed)
         for aircraft in air_wing.squadrons:
             self.add_aircraft_type(aircraft)
 
     def remove_aircraft_type(self, aircraft: AircraftType):
-        for item in self.item_model.findItems(aircraft.name):
+        for item in self.item_model.findItems(aircraft.display_name):
             self.item_model.removeRow(item.row())
         self.page_index_changed.emit(self.selectionModel().currentIndex().row())
 
     def add_aircraft_type(self, aircraft: AircraftType):
-        aircraft_item = QStandardItem(aircraft.name)
+        aircraft_item = QStandardItem(aircraft.display_name)
         icon = self.icon_for(aircraft)
         if icon is not None:
             aircraft_item.setIcon(icon)
@@ -682,12 +665,11 @@ class AircraftTypeList(QListView):
         self.item_model.clear()
         for aircraft in self.air_wing.squadrons:
             self.add_aircraft_type(aircraft)
-        self.update()
 
 
 class AirWingConfigurationTab(QWidget):
     def __init__(
-        self, coalition: Coalition, game: Game, gen_settings: GeneratorSettings
+        self, coalition: Coalition, game: Game, aircraft_present: bool
     ) -> None:
         super().__init__()
 
@@ -708,7 +690,7 @@ class AirWingConfigurationTab(QWidget):
         layout.addWidget(add_button, 2, 1, 1, 1)
 
         self.squadrons_panel = AircraftSquadronsPanel(
-            game, coalition, self.parking_tracker, gen_settings
+            game, coalition, self.parking_tracker, aircraft_present
         )
         self.squadrons_panel.page_removed.connect(self.type_list.remove_aircraft_type)
         layout.addLayout(self.squadrons_panel, 1, 3, 2, 1)
@@ -725,12 +707,12 @@ class AirWingConfigurationTab(QWidget):
         bases = list(self.game.theater.control_points_for(self.coalition.player))
 
         # List of all Aircrafts possible to operate with the given bases
-        possible_aircrafts = [
+        possible_aircrafts = {
             aircraft
-            for aircraft in self.coalition.faction.aircrafts
+            for aircraft in self.coalition.faction.all_aircrafts
             if isinstance(aircraft, AircraftType)
             and any(base.can_operate(aircraft) for base in bases)
-        ]
+        }
 
         popup = SquadronConfigPopup(
             selected_aircraft,
@@ -738,7 +720,7 @@ class AirWingConfigurationTab(QWidget):
             bases,
             self.coalition.air_wing.squadron_defs,
         )
-        if popup.exec_() != QDialog.Accepted:
+        if popup.exec_() != QDialog.DialogCode.Accepted:
             return
 
         selected_type = popup.aircraft_type_selector.currentData()
@@ -764,7 +746,7 @@ class AirWingConfigurationTab(QWidget):
         )
 
         # Add Squadron
-        if not self.type_list.item_model.findItems(selected_type.name):
+        if not self.type_list.item_model.findItems(selected_type.display_name):
             self.type_list.add_aircraft_type(selected_type)
             # TODO Select the newly added type
         self.squadrons_panel.add_squadron_to_panel(squadron)
@@ -782,7 +764,7 @@ class AirWingConfigurationTab(QWidget):
 class AirWingConfigurationDialog(QDialog):
     """Dialog window for air wing configuration."""
 
-    def __init__(self, game: Game, gen_setting: GeneratorSettings, parent) -> None:
+    def __init__(self, game: Game, aircraft_present: bool, parent) -> None:
         super().__init__(parent)
         self.setMinimumSize(1024, 768)
         self.setWindowTitle(f"Air Wing Configuration")
@@ -793,7 +775,8 @@ class AirWingConfigurationDialog(QDialog):
 
         doc_label = QLabel(
             "Use this opportunity to customize the squadrons available to your "
-            "coalition. <strong>This is your only opportunity to make changes.</strong>"
+            "coalition. You can make changes at a later stage if "
+            'the "Enable Air Wing adjustments" cheat option is enabled.'
             "<br /><br />"
             "To accept your changes and continue, close this window."
         )
@@ -805,13 +788,24 @@ class AirWingConfigurationDialog(QDialog):
 
         self.tabs = []
         for coalition in game.coalitions:
-            coalition_tab = AirWingConfigurationTab(coalition, game, gen_setting)
+            coalition_tab = AirWingConfigurationTab(coalition, game, aircraft_present)
             name = "Blue" if coalition.player else "Red"
             self.tab_widget.addTab(coalition_tab, name)
             self.tabs.append(coalition_tab)
 
+        load_save_layout = QHBoxLayout()
+        save_button = QPushButton("Save Config")
+        save_button.setProperty("style", "btn-primary")
+        save_button.clicked.connect(lambda state: self.save_config())
+        load_button = QPushButton("Load Config")
+        load_button.setProperty("style", "btn-primary")
+        load_button.clicked.connect(lambda state: self.load_config())
+        load_save_layout.addWidget(load_button)
+        load_save_layout.addWidget(save_button)
+        layout.addLayout(load_save_layout)
+
         buttons_layout = QHBoxLayout()
-        apply_button = QPushButton("Accept Changes && Start Campaign")
+        apply_button = QPushButton("Accept Changes")
         apply_button.setProperty("style", "btn-accept")
         apply_button.clicked.connect(lambda state: self.accept())
         discard_button = QPushButton("Reset Changes")
@@ -821,6 +815,88 @@ class AirWingConfigurationDialog(QDialog):
         buttons_layout.addWidget(apply_button)
         layout.addLayout(buttons_layout)
 
+    def save_config(self) -> None:
+        awd = airwing_dir()
+        if not awd.exists():
+            awd.mkdir()
+        fd = QFileDialog(
+            caption="Save Air Wing", directory=str(awd), filter="*.yaml;*.yml"
+        )
+        fd.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+        if fd.exec_():
+            airwing = self._build_air_wing()
+            filename = fd.selectedFiles()[0]
+            with open(filename, "w") as f:
+                f.write(yaml.dump(airwing))
+
+    def _build_air_wing(self) -> dict:
+        w = self.tab_widget.currentWidget()
+        assert isinstance(w, AirWingConfigurationTab)
+        squadrons = {}
+        for ac, sqs in w.coalition.air_wing.squadrons.items():
+            for s in sqs:
+                cp = s.location.at
+                if isinstance(cp, Point):
+                    key = s.location.name
+                else:
+                    key = cp.id
+                name = (
+                    s.name
+                    if s.name
+                    in [x.name for x in w.coalition.air_wing.squadron_defs[ac]]
+                    else s.aircraft.variant_id
+                )
+                entry = {
+                    "primary": s.primary_task.value,
+                    "secondary": [
+                        sec.value
+                        for sec in s.auto_assignable_mission_types
+                        if sec.value != s.primary_task.value
+                    ],
+                    "aircraft": [name],
+                    "size": s.max_size,
+                }
+                if squadrons.get(key):
+                    squadrons[key].append(entry)
+                else:
+                    squadrons[key] = [entry]
+        return squadrons
+
+    def load_config(self) -> None:
+        result = QMessageBox.information(
+            None,
+            "Load Air Wing?",
+            "Revert will not be possible after loading a different Air Wing.<br />"
+            "Are you sure you want to continue?",
+            QMessageBox.StandardButton.Yes,
+            QMessageBox.StandardButton.No,
+        )
+        if result == QMessageBox.StandardButton.No:
+            return
+
+        awd = airwing_dir()
+        if not awd.exists():
+            awd.mkdir()
+        fd = QFileDialog(
+            caption="Load Air Wing", directory=str(awd), filter="*.yaml;*.yml"
+        )
+        if fd.exec_():
+            filename = fd.selectedFiles()[0]
+            with open(filename, "r") as f:
+                airwing = yaml.safe_load(f)
+                self._construct_air_wing_tab(airwing)
+
+    def _construct_air_wing_tab(self, airwing: dict[str, Any]) -> None:
+        w = self.tab_widget.currentWidget()
+        assert isinstance(w, AirWingConfigurationTab)
+        c = w.coalition
+        c.air_wing.squadrons = defaultdict(list)
+        config = CampaignAirWingConfig.from_campaign_data(airwing, c.game.theater)
+        c.configure_default_air_wing(config)
+        w.revert()
+        if c.game.turn != 0:
+            c.initialize_turn(False)
+
     def revert(self) -> None:
         for tab in self.tabs:
             tab.revert()
@@ -828,30 +904,32 @@ class AirWingConfigurationDialog(QDialog):
     def accept(self) -> None:
         for tab in self.tabs:
             tab.apply()
+            if tab.coalition.game.turn != 0:
+                tab.coalition.initialize_turn(False)
         super().accept()
 
     def reject(self) -> None:
         result = QMessageBox.information(
             None,
             "Discard changes?",
-            "Are you sure you want to discard your changes and start the campaign?",
-            QMessageBox.Yes,
-            QMessageBox.No,
+            "Are you sure you want to discard your changes?",
+            QMessageBox.StandardButton.Yes,
+            QMessageBox.StandardButton.No,
         )
-        if result == QMessageBox.No:
+        if result == QMessageBox.StandardButton.No:
             return
         super().reject()
 
 
 class SquadronAircraftTypeSelector(QComboBox):
     def __init__(
-        self, types: list[AircraftType], selected_aircraft: Optional[str]
+        self, types: set[AircraftType], selected_aircraft: Optional[str]
     ) -> None:
         super().__init__()
-        self.setSizeAdjustPolicy(self.AdjustToContents)
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-        for type in sorted(types, key=lambda type: type.name):
-            self.addItem(type.name, type)
+        for type in sorted(types, key=lambda type: type.display_name):
+            self.addItem(type.display_name, type)
 
         if selected_aircraft:
             self.setCurrentText(selected_aircraft)
@@ -865,7 +943,7 @@ class SquadronDefSelector(QComboBox):
         allow_random: bool = True,
     ) -> None:
         super().__init__()
-        self.setSizeAdjustPolicy(self.AdjustToContents)
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.squadron_defs = squadron_defs
         self.allow_random = allow_random
         self.set_aircraft_type(aircraft)
@@ -890,7 +968,7 @@ class SquadronConfigPopup(QDialog):
     def __init__(
         self,
         selected_aircraft: Optional[str],
-        types: list[AircraftType],
+        types: set[AircraftType],
         bases: list[ControlPoint],
         squadron_defs: dict[AircraftType, list[SquadronDef]],
     ) -> None:

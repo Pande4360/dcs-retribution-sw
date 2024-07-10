@@ -1,10 +1,9 @@
 """Dialogs for creating and editing ATO packages."""
 import logging
-from datetime import timedelta
 from typing import Optional
 
-from PySide2.QtCore import QItemSelection, QTime, Qt, Signal
-from PySide2.QtWidgets import (
+from PySide6.QtCore import QItemSelection, QTime, Qt, Signal
+from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QHBoxLayout,
@@ -24,11 +23,12 @@ from game.radio.radios import RadioFrequency
 from game.server import EventStream
 from game.sim import GameUpdateEvents
 from game.theater.missiontarget import MissionTarget
-from qt_ui.models import AtoModel, GameModel, PackageModel
+from qt_ui.models import GameModel, PackageModel
 from qt_ui.uiconstants import EVENT_ICONS
 from qt_ui.widgets.QFrequencyWidget import QFrequencyWidget
 from qt_ui.widgets.ato import QFlightList
 from qt_ui.windows.QRadioFrequencyDialog import QRadioFrequencyDialog
+from qt_ui.windows.mission.QAutoCreateDialog import QAutoCreateDialog
 from qt_ui.windows.mission.flight.QFlightCreator import QFlightCreator
 
 
@@ -76,7 +76,7 @@ class QPackageDialog(QDialog):
         self.package_name_column = QHBoxLayout()
         self.summary_row.addLayout(self.package_name_column)
         self.package_name_label = QLabel("Package Name:")
-        self.package_name_label.setAlignment(Qt.AlignCenter)
+        self.package_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.package_name_text = QLineEdit(self.package_model.package.custom_name)
         self.package_name_text.textChanged.connect(self.on_change_name)
         self.package_name_column.addWidget(self.package_name_label)
@@ -92,7 +92,7 @@ class QPackageDialog(QDialog):
 
         self.tot_spinner = QTimeEdit(self.tot_qtime())
         self.tot_spinner.setMinimumTime(QTime(0, 0))
-        self.tot_spinner.setDisplayFormat("T+hh:mm:ss")
+        self.tot_spinner.setDisplayFormat("hh:mm:ss")
         self.tot_spinner.timeChanged.connect(self.save_tot)
         self.tot_spinner.setToolTip("Package TOT relative to mission TOT")
         self.tot_spinner.setEnabled(not self.package_model.package.auto_asap)
@@ -108,9 +108,9 @@ class QPackageDialog(QDialog):
         self.tot_column.addWidget(self.auto_asap)
 
         self.tot_help_label = QLabel(
-            '<a href="https://github.com/dcs-liberation/dcs_liberation/wiki/Mission-planning"><span style="color:#FFFFFF;">Help</span></a>'
+            '<a href="https://github.com/dcs-retribution/dcs-retribution/wiki/Mission-planning"><span style="color:#FFFFFF;">Help</span></a>'
         )
-        self.tot_help_label.setAlignment(Qt.AlignCenter)
+        self.tot_help_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tot_help_label.setOpenExternalLinks(True)
         self.tot_column.addWidget(self.tot_help_label)
 
@@ -133,6 +133,11 @@ class QPackageDialog(QDialog):
         self.delete_flight_button.setEnabled(model.rowCount() > 0)
         self.button_layout.addWidget(self.delete_flight_button)
 
+        self.auto_create_button = QPushButton("Auto Create")
+        self.auto_create_button.setDisabled(len(list(self.package_model.flights)) > 0)
+        self.auto_create_button.clicked.connect(self.on_auto_create)
+        self.button_layout.addWidget(self.auto_create_button)
+
         self.button_layout.addStretch()
 
         self.freq_widget = QFrequencyWidget(self.package_model.package, game_model)
@@ -153,11 +158,8 @@ class QPackageDialog(QDialog):
         return self.game_model.game
 
     def tot_qtime(self) -> QTime:
-        delay = int(self.package_model.package.time_over_target.total_seconds())
-        hours = delay // 3600
-        minutes = delay // 60 % 60
-        seconds = delay % 60
-        return QTime(hours, minutes, seconds)
+        tot = self.package_model.package.time_over_target
+        return QTime(tot.hour, tot.minute, tot.second)
 
     def on_cancel(self) -> None:
         pass
@@ -171,9 +173,13 @@ class QPackageDialog(QDialog):
         self.save_tot()
 
     def save_tot(self) -> None:
+        # TODO: This is going to break horribly around midnight.
         time = self.tot_spinner.time()
-        seconds = time.hour() * 3600 + time.minute() * 60 + time.second()
-        self.package_model.set_tot(timedelta(seconds=seconds))
+        self.package_model.set_tot(
+            self.package_model.package.time_over_target.replace(
+                hour=time.hour(), minute=time.minute(), second=time.second()
+            )
+        )
 
     def set_asap(self, checked: bool) -> None:
         self.package_model.set_asap(checked)
@@ -192,7 +198,10 @@ class QPackageDialog(QDialog):
     def on_add_flight(self) -> None:
         """Opens the new flight dialog."""
         self.add_flight_dialog = QFlightCreator(
-            self.game, self.package_model.package, parent=self.window()
+            self.game,
+            self.package_model.package,
+            is_ownfor=self.game_model.is_ownfor,
+            parent=self.window(),
         )
         self.add_flight_dialog.created.connect(self.add_flight)
         self.add_flight_dialog.show()
@@ -208,8 +217,9 @@ class QPackageDialog(QDialog):
             self.package_model.delete_flight(flight)
             logging.exception("Could not create flight")
             QMessageBox.critical(
-                self, "Could not create flight", str(ex), QMessageBox.Ok
+                self, "Could not create flight", str(ex), QMessageBox.StandardButton.Ok
             )
+        self.auto_create_button.setDisabled(True)
         # noinspection PyUnresolvedReferences
         self.package_changed.emit()
 
@@ -220,8 +230,25 @@ class QPackageDialog(QDialog):
             logging.error(f"Cannot delete flight when no flight is selected.")
             return
         self.package_model.cancel_or_abort_flight(flight)
+        if len(list(self.package_model.flights)) == 0:
+            self.auto_create_button.setDisabled(False)
         # noinspection PyUnresolvedReferences
         self.package_changed.emit()
+
+    def on_auto_create(self) -> None:
+        """Opens the new flight dialog."""
+        auto_create_dialog = QAutoCreateDialog(
+            self.game,
+            self.package_model,
+            self.game_model.is_ownfor,
+            parent=self.window(),
+        )
+        if auto_create_dialog.exec_() == QDialog.DialogCode.Accepted:
+            for f in self.package_model.package.flights:
+                EventStream.put_nowait(GameUpdateEvents().new_flight(f))
+            self.package_model.update_tot()
+            self.package_changed.emit()
+            self.auto_create_button.setDisabled(True)
 
     def on_change_name(self) -> None:
         self.package_model.package.custom_name = self.package_name_text.text()
@@ -254,7 +281,7 @@ class QNewPackageDialog(QPackageDialog):
     """
 
     def __init__(
-        self, game_model: GameModel, model: AtoModel, target: MissionTarget, parent=None
+        self, game_model: GameModel, target: MissionTarget, parent=None
     ) -> None:
         super().__init__(
             game_model,
@@ -263,7 +290,9 @@ class QNewPackageDialog(QPackageDialog):
             ),
             parent=parent,
         )
-        self.ato_model = model
+        self.ato_model = (
+            game_model.ato_model if game_model.is_ownfor else game_model.red_ato_model
+        )
 
         # In the *new* package dialog, a package has been created and may have aircraft
         # assigned to it, but it is not a part of the ATO until the user saves it.
@@ -294,7 +323,7 @@ class QNewPackageDialog(QPackageDialog):
 
     def on_cancel(self) -> None:
         super().on_cancel()
-        for flight in self.package_model.package.flights:
+        for flight in list(self.package_model.package.flights):
             self.package_model.cancel_or_abort_flight(flight)
 
 
@@ -304,11 +333,9 @@ class QEditPackageDialog(QPackageDialog):
     Changes to existing packages occur immediately.
     """
 
-    def __init__(
-        self, game_model: GameModel, model: AtoModel, package: PackageModel
-    ) -> None:
-        super().__init__(game_model, package)
-        self.ato_model = model
+    def __init__(self, gm: GameModel, package: PackageModel) -> None:
+        super().__init__(gm, package)
+        self.ato_model = gm.ato_model if gm.is_ownfor else gm.red_ato_model
 
         self.delete_button = QPushButton("Delete package")
         self.delete_button.setProperty("style", "btn-danger")

@@ -5,6 +5,7 @@
   "description": "<p>Egyptian Army around the early-mid 2010s.</p>",
   "aircrafts": [
     "IL-76MD",
+    "Mi-8MTV2 Hip",
     "Mi-24V Hind-E",
     "Mi-24P Hind-F",
     "AH-64D Apache Longbow",
@@ -14,6 +15,7 @@
     "Mirage 2000-5",
     "SA 342M Gazelle",
     "F-4E Phantom II",
+    "F-4E-45MC Phantom II",
     "Su-25 Frogfoot",
     "F-16CM Fighting Falcon (Block 50)"
   ],
@@ -68,7 +70,8 @@
     "Cold-War-Flak",
     "KS-19/SON-9",
     "Hawk",
-    "Patriot"
+    "Patriot",
+    "Silkworm"
   ],
   "naval_units": [
     "FFG Oliver Hazard Perry",
@@ -77,6 +80,7 @@
   "air_defense_units": [
     "EWR 1L13",
     "EWR 55G6",
+    "HEMTT C-RAM Phalanx",
     "SAM SA-5 S-200 ST-68U \"Tin Shield\" SR",
     "SAM SA-8 Osa \"Gecko\" TEL",
     "SA-9 Strela",

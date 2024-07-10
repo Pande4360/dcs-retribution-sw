@@ -2,8 +2,8 @@ import logging
 from copy import deepcopy
 from typing import Callable, Iterator, Optional, Type
 
-from PySide2.QtCore import QItemSelection, QItemSelectionModel, QModelIndex, Qt
-from PySide2.QtWidgets import (
+from PySide6.QtCore import QItemSelection, QItemSelectionModel, QModelIndex, Qt
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
@@ -22,13 +22,16 @@ from dcs.unittype import FlyingType
 from game.ato.flightplans.custom import CustomFlightPlan
 from game.ato.flighttype import FlightType
 from game.ato.flightwaypointtype import FlightWaypointType
+from game.dcs.aircrafttype import AircraftType
 from game.server import EventStream
 from game.sim import GameUpdateEvents
 from game.squadrons import Pilot, Squadron
-from game.theater import ConflictTheater, ControlPoint
+from game.theater import ConflictTheater, ControlPoint, ParkingType
 from qt_ui.delegates import TwoColumnRowDelegate
 from qt_ui.errorreporter import report_errors
 from qt_ui.models import AtoModel, SquadronModel
+from qt_ui.simcontroller import SimController
+from qt_ui.widgets.combos.QSquadronLiverySelector import SquadronLiverySelector
 from qt_ui.widgets.combos.primarytaskselector import PrimaryTaskSelector
 
 
@@ -44,7 +47,7 @@ class PilotDelegate(TwoColumnRowDelegate):
     def text_for(self, index: QModelIndex, row: int, column: int) -> str:
         pilot = self.pilot(index)
         if (row, column) == (0, 0):
-            return self.squadron_model.data(index, Qt.DisplayRole)
+            return self.squadron_model.data(index, Qt.ItemDataRole.DisplayRole)
         elif (row, column) == (0, 1):
             flown = pilot.record.missions_flown
             missions = "missions" if flown != 1 else "mission"
@@ -66,11 +69,12 @@ class PilotList(QListView):
         self.setItemDelegate(PilotDelegate(self.squadron_model))
         self.setModel(self.squadron_model)
         self.selectionModel().setCurrentIndex(
-            self.squadron_model.index(0, 0, QModelIndex()), QItemSelectionModel.Select
+            self.squadron_model.index(0, 0, QModelIndex()),
+            QItemSelectionModel.SelectionFlag.Select,
         )
 
         # self.setIconSize(QSize(91, 24))
-        self.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
 
 
 class AutoAssignedTaskControls(QVBoxLayout):
@@ -105,7 +109,8 @@ class SquadronDestinationComboBox(QComboBox):
         self.squadron = squadron
         self.theater = theater
 
-        room = squadron.location.unclaimed_parking()
+        parking_type = ParkingType().from_squadron(squadron)
+        room = squadron.location.unclaimed_parking(parking_type)
         self.addItem(
             f"Remain at {squadron.location} (room for {room} more aircraft)",
             squadron.location,
@@ -121,13 +126,18 @@ class SquadronDestinationComboBox(QComboBox):
                 f"Transfer to {destination} (room for {room} more aircraft)",
                 destination,
             )
-            if room < squadron.owned_aircraft:
+            if room < squadron.owned_aircraft or room == 0:
                 diff = squadron.owned_aircraft - room
-                self.setItemText(
-                    idx,
+                text = (
                     f"Transfer to {destination} not possible "
-                    f"({diff} additional slots required)",
+                    f"({diff} additional slots required)"
                 )
+                if squadron.owned_aircraft == 0 and room == 0:
+                    text = (
+                        f"Transfer to {destination} not possible "
+                        f"(no fitting slots found)"
+                    )
+                self.setItemText(idx, text)
                 self.model().item(idx).setEnabled(False)
 
         if squadron.destination is None:
@@ -137,10 +147,19 @@ class SquadronDestinationComboBox(QComboBox):
             self.setCurrentIndex(selected_index)
 
     def iter_destinations(self) -> Iterator[ControlPoint]:
+        size = self.squadron.expected_size_next_turn
+        parking_type = ParkingType().from_squadron(self.squadron)
         for control_point in self.theater.control_points_for(self.squadron.player):
             if control_point == self.squadron.location:
                 continue
             if not control_point.can_operate(self.squadron.aircraft):
+                continue
+            ac_type = self.squadron.aircraft.dcs_unit_type
+            if (
+                self.squadron.destination is not control_point
+                and control_point.unclaimed_parking(parking_type) < size
+                and self.calculate_parking_slots(control_point, ac_type) < size
+            ):
                 continue
             yield control_point
 
@@ -151,18 +170,43 @@ class SquadronDestinationComboBox(QComboBox):
         if cp.dcs_airport:
             ap = deepcopy(cp.dcs_airport)
             overflow = []
+
+            parking_type = ParkingType(
+                fixed_wing=False, fixed_wing_stol=False, rotary_wing=True
+            )
+            free_helicopter_slots = cp.total_aircraft_parking(parking_type)
+
+            parking_type = ParkingType(
+                fixed_wing=False, fixed_wing_stol=True, rotary_wing=False
+            )
+            free_ground_spawns = cp.total_aircraft_parking(parking_type)
+
             for s in cp.squadrons:
                 for count in range(s.owned_aircraft):
-                    slot = ap.free_parking_slot(s.aircraft.dcs_unit_type)
-                    if slot:
-                        slot.unit_id = id(s) + count
+                    is_heli = s.aircraft.helicopter
+                    is_vtol = not is_heli and s.aircraft.lha_capable
+                    count_ground_spawns = (
+                        s.aircraft.flyable
+                        or cp.coalition.game.settings.ground_start_ai_planes
+                    )
+
+                    if free_helicopter_slots > 0 and (is_heli or is_vtol):
+                        free_helicopter_slots = -1
+                    elif free_ground_spawns > 0 and (
+                        is_heli or is_vtol or count_ground_spawns
+                    ):
+                        free_ground_spawns = -1
                     else:
-                        overflow.append(s)
-                        break
+                        slot = ap.free_parking_slot(s.aircraft.dcs_unit_type)
+                        if slot:
+                            slot.unit_id = id(s) + count
+                        else:
+                            overflow.append(s)
+                            break
             if overflow:
                 overflow_msg = ""
                 for s in overflow:
-                    overflow_msg += f"{s.name} - {s.aircraft.name}<br/>"
+                    overflow_msg += f"{s.name} - {s.aircraft.variant_id}<br/>"
                 QMessageBox.warning(
                     None,
                     "Insufficient parking space detected!",
@@ -173,7 +217,11 @@ class SquadronDestinationComboBox(QComboBox):
                 )
             return len(ap.free_parking_slots(dcs_unit_type))
         else:
-            return cp.unclaimed_parking()
+            parking_type = ParkingType().from_aircraft(
+                next(AircraftType.for_dcs_type(dcs_unit_type)),
+                cp.coalition.game.settings.ground_start_ai_planes,
+            )
+            return cp.unclaimed_parking(parking_type)
 
 
 class SquadronDialog(QDialog):
@@ -184,11 +232,13 @@ class SquadronDialog(QDialog):
         ato_model: AtoModel,
         squadron_model: SquadronModel,
         theater: ConflictTheater,
+        sim_controller: SimController,
         parent,
     ) -> None:
         super().__init__(parent)
         self.ato_model = ato_model
         self.squadron_model = squadron_model
+        self.sim_controller = sim_controller
 
         self.setMinimumSize(1000, 440)
         self.setWindowTitle(str(squadron_model.squadron))
@@ -211,6 +261,11 @@ class SquadronDialog(QDialog):
             self.on_task_index_changed
         )
         left_column.addWidget(self.primary_task_selector)
+
+        left_column.addWidget(QLabel("Livery"))
+        self.livery_selector = SquadronLiverySelector(self.squadron_model.squadron)
+        self.livery_selector.currentIndexChanged.connect(self.on_livery_changed)
+        left_column.addWidget(self.livery_selector)
 
         auto_assigned_tasks = AutoAssignedTaskControls(squadron_model)
         left_column.addLayout(auto_assigned_tasks)
@@ -237,19 +292,25 @@ class SquadronDialog(QDialog):
         self.rename_button = QPushButton("Rename pilot")
         self.rename_button.setProperty("style", "start-button")
         self.rename_button.clicked.connect(self.rename_pilot)
-        button_panel.addWidget(self.rename_button, alignment=Qt.AlignRight)
+        button_panel.addWidget(
+            self.rename_button, alignment=Qt.AlignmentFlag.AlignRight
+        )
 
         self.toggle_ai_button = QPushButton()
         self.reset_ai_toggle_state(self.pilot_list.currentIndex())
         self.toggle_ai_button.setProperty("style", "start-button")
         self.toggle_ai_button.clicked.connect(self.toggle_ai)
-        button_panel.addWidget(self.toggle_ai_button, alignment=Qt.AlignRight)
+        button_panel.addWidget(
+            self.toggle_ai_button, alignment=Qt.AlignmentFlag.AlignRight
+        )
 
         self.toggle_leave_button = QPushButton()
         self.reset_leave_toggle_state(self.pilot_list.currentIndex())
         self.toggle_leave_button.setProperty("style", "start-button")
         self.toggle_leave_button.clicked.connect(self.toggle_leave)
-        button_panel.addWidget(self.toggle_leave_button, alignment=Qt.AlignRight)
+        button_panel.addWidget(
+            self.toggle_leave_button, alignment=Qt.AlignmentFlag.AlignRight
+        )
 
     @property
     def squadron(self) -> Squadron:
@@ -276,7 +337,9 @@ class SquadronDialog(QDialog):
             elif self.ato_model.game.settings.enable_transfer_cheat:
                 self._instant_relocate(destination)
             else:
-                self.squadron.plan_relocation(destination)
+                self.squadron.plan_relocation(
+                    destination, self.sim_controller.current_time_in_sim
+                )
             self.ato_model.replace_from_game(player=True)
 
     def check_disabled_button_states(
@@ -355,3 +418,6 @@ class SquadronDialog(QDialog):
         if task is None:
             raise RuntimeError("Selected task cannot be None")
         self.squadron.primary_task = task
+
+    def on_livery_changed(self) -> None:
+        self.squadron.livery = self.livery_selector.currentData()
