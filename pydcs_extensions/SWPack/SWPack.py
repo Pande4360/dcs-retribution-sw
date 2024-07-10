@@ -968,25 +968,6 @@ class UD60(HelicopterType):
                 Equally_Responsible = -2
 
     livery_name = "UD60"  # from type
-    # ERRR {TwinBl}
-    # ERRR {TwinBl}
-    # ERRR {TwinBl_Tube}
-    # ERRR {TwinBl_Tube}
-    # ERRR {TwinBl_Tube}
-
-    # ERRR {TwinBl_Tube}
-
-    class Pylon5:
-        CEFS_Fuel_Tank_200_gallons = (6, Weapons.CEFS_Fuel_Tank_200_gallons)
-        LAU_61_pod___19_x_2_75_Hydra__UnGd_Rkts_M151__HE = (
-            6,
-            Weapons.LAU_61_pod___19_x_2_75_Hydra__UnGd_Rkts_M151__HE,
-        )
-
-    # ERRR <CLEAN>
-    # ERRR {TwinBl2}
-    # ERRR {TwinBl2}
-    # ERRR <CLEAN>
 
     pylons: Set[int] = {1, 2, 3, 4, 5, 6, 7}
 
