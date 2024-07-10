@@ -1,6 +1,7 @@
 from typing import Set
 
 from dcs import task
+from dcs.helicopters import HelicopterType
 from dcs.planes import PlaneType
 from dcs.weapons_data import Weapons
 from dcs import unittype
