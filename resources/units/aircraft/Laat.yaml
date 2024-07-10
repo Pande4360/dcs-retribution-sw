@@ -1,0 +1,21 @@
+class: Helicopter
+always_keeps_gun: true
+cabin_size: 20 # Can not transport troops
+can_carry_crates: true # Can not carry crates
+description:
+  The Low Altitude Assault Transport, or LAAT, was a line of gunship used by the Grand Army of the Republic. 
+  Models in the line included the Low Altitude Assault Transport carrier designed to transport 
+  a single All Terrain Tactical Enforcer and the Low Altitude Assault Transport/infantry that served 
+  mainly as a gunship and troop transport.[3] Space gunships[8] were a variant of the Low Altitude Assault 
+  Transport/infantry designed to function in space.[20] The Coruscant Guard and Imperial Military also used 
+  a variant called the LAAT/le patrol gunship.
+introduced: 1986
+manufacturer: Santhe
+origin: Imperial
+price: 10
+role: Transport
+variants:
+  Laat: {}
+tasks:
+  Transport: 490
+  CAS: 390
